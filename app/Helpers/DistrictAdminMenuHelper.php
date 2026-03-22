@@ -32,6 +32,12 @@ class DistrictAdminMenuHelper
             ],
 
             [
+                'icon' => 'calendar',
+                'name' => 'School Years',
+                'path' => '/district-admin/school-year',
+            ],
+
+            [
                 'icon' => 'users',
                 'name' => 'Users',
                 'path' => '/district-admin/users',

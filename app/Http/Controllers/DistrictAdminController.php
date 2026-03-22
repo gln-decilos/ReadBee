@@ -132,6 +132,31 @@ class DistrictAdminController extends Controller
         ]);
     }
 
+    public function schoolYears()
+    {
+        $menuGroups = DistrictAdminMenuHelper::getMenuGroups();
+
+        $schoolYearsResponse = Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ])->get(
+            env('SUPABASE_URL') . '/rest/v1/school_year?select=year_id,start_date,end_date,created_at&order=start_date.desc'
+        );
+
+        $schoolYears = $schoolYearsResponse->successful()
+            ? $schoolYearsResponse->json()
+            : [];
+
+        return view('pages.district-admin.district-admin-school-year', [
+            'title' => 'School Year Management',
+            'menuGroups' => $menuGroups,
+            'schoolYears' => $schoolYears,
+            'page' => 1,
+            'perPage' => 6,
+        ]);
+    }
+
     private function extractTotalCount($contentRange)
     {
         if ($contentRange && preg_match('/\/(\d+)$/', $contentRange, $matches)) {

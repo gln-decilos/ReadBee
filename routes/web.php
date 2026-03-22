@@ -1,12 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DistrictAdminController;
 use App\Http\Controllers\DistrictAdmin\DistrictAdminUserController;
-use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\DistrictAdmin\DistrictAdminMunicipalityController;
 use App\Http\Controllers\DistrictAdmin\DistrictAdminSchoolController;
+use App\Http\Controllers\DistrictAdmin\DistrictAdminSchoolYearController;
 
 // dashboard pages
 Route::get('/', function () {
@@ -34,7 +35,6 @@ Route::get('/basic-tables', function () {
 })->name('basic-tables');
 
 // pages
-
 Route::get('/blank', function () {
     return view('pages.blank', ['title' => 'Blank']);
 })->name('blank');
@@ -52,7 +52,6 @@ Route::get('/line-chart', function () {
 Route::get('/bar-chart', function () {
     return view('pages.chart.bar-chart', ['title' => 'Bar Chart']);
 })->name('bar-chart');
-
 
 // authentication pages
 Route::get('/signin', function () {
@@ -88,104 +87,133 @@ Route::get('/videos', function () {
     return view('pages.ui-elements.videos', ['title' => 'Videos']);
 })->name('videos');
 
-
 Route::prefix('district-admin')->group(function () {
-    Route::get('dashboard', [DistrictAdminController::class, 'dashboard'])->name('district-admin.district-admin-dashboard');
-    Route::get('profile', [DistrictAdminController::class, 'profile'])->name('district-admin.district-admin-profile');
-    Route::get('users', [DistrictAdminController::class, 'users'])->name('district-admin.district-admin-users');
-    Route::post('users', [DistrictAdminUserController::class, 'store'])->name('district-admin.users.store');
-Route::delete('users/delete', [DistrictAdminUserController::class, 'destroy'])->name('district-admin.users.destroy');    Route::get('/users/{userId}/designations', [DistrictAdminUserController::class, 'getUserDesignations'])->name('district-admin.users.designations');
-    Route::delete('/designations', [DistrictAdminUserController::class, 'destroyDesignation'])->name('district-admin.designations.destroy');Route::post('/designations', [DistrictAdminUserController::class, 'storeDesignation']);
-    Route::get('/roles', function () {
-    return Http::withHeaders([
-        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Accept' => 'application/json'
-    ])->get(env('SUPABASE_URL').'/rest/v1/roles?select=id,name')
-      ->json();
-});
+    Route::get('dashboard', [DistrictAdminController::class, 'dashboard'])
+        ->name('district-admin.district-admin-dashboard');
 
-Route::get('/scopes', function (\Illuminate\Http\Request $request) {
-    $roleId = $request->query('role_id');
+    Route::get('profile', [DistrictAdminController::class, 'profile'])
+        ->name('district-admin.district-admin-profile');
 
-    $query = 'select=id,name,description,scope_type';
+    Route::get('users', [DistrictAdminController::class, 'users'])
+        ->name('district-admin.district-admin-users');
 
-    if ($roleId) {
-        $query .= "&role_id=eq.$roleId";
-    }
+    Route::post('users', [DistrictAdminUserController::class, 'store'])
+        ->name('district-admin.users.store');
 
-    return Http::withHeaders([
-        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Accept' => 'application/json'
-    ])->get(env('SUPABASE_URL')."/rest/v1/scopes?$query")
-      ->json();
-});
+    Route::delete('users/delete', [DistrictAdminUserController::class, 'destroy'])
+        ->name('district-admin.users.destroy');
 
-Route::get('/districts', function () {
-    return Http::withHeaders([
-        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Accept' => 'application/json'
-    ])->get(env('SUPABASE_URL') . '/rest/v1/districts?select=district_id,district_name&order=district_name.asc')
-      ->json();
-});
+    Route::get('users/{userId}/designations', [DistrictAdminUserController::class, 'getUserDesignations'])
+        ->name('district-admin.users.designations');
 
-Route::get('/municipalities', function (\Illuminate\Http\Request $request) {
-    $districtId = $request->query('district_id');
+    Route::delete('designations', [DistrictAdminUserController::class, 'destroyDesignation'])
+        ->name('district-admin.designations.destroy');
 
-    $url = env('SUPABASE_URL') . '/rest/v1/municipalities?select=municipality_id,municipal_name,district_id&order=municipal_name.asc';
+    Route::post('designations', [DistrictAdminUserController::class, 'storeDesignation']);
 
-    if ($districtId) {
-        $url .= "&district_id=eq.$districtId";
-    }
+    Route::get('roles', function () {
+        return Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ])->get(
+            env('SUPABASE_URL') . '/rest/v1/roles?select=id,name'
+        )->json();
+    });
 
-    return Http::withHeaders([
-        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Accept' => 'application/json'
-    ])->get($url)->json();
-});
+    Route::get('scopes', function (\Illuminate\Http\Request $request) {
+        $roleId = $request->query('role_id');
 
-Route::get('/schools', function (\Illuminate\Http\Request $request) {
-    $municipalityId = $request->query('municipality_id');
+        $query = 'select=id,name,description,scope_type';
 
-    $url = env('SUPABASE_URL') . '/rest/v1/schools?select=school_id,name,municipality_id,district_id&order=name.asc';
+        if ($roleId) {
+            $query .= "&role_id=eq.$roleId";
+        }
 
-    if ($municipalityId) {
-        $url .= "&municipality_id=eq.$municipalityId";
-    }
+        return Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ])->get(
+            env('SUPABASE_URL') . "/rest/v1/scopes?$query"
+        )->json();
+    });
 
-    return Http::withHeaders([
-        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Accept' => 'application/json'
-    ])->get($url)->json();
-});
+    Route::get('districts', function () {
+        return Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ])->get(
+            env('SUPABASE_URL') . '/rest/v1/districts?select=district_id,district_name&order=district_name.asc'
+        )->json();
+    });
 
+    Route::get('municipalities', function (\Illuminate\Http\Request $request) {
+        $districtId = $request->query('district_id');
 
-Route::get('municipality', [DistrictAdminController::class, 'municipalities'])
-    ->name('district-admin.municipalities.index');
+        $url = env('SUPABASE_URL') . '/rest/v1/municipalities?select=municipality_id,municipal_name,district_id&order=municipal_name.asc';
 
-Route::post('municipality', [DistrictAdminMunicipalityController::class, 'store'])
-    ->name('district-admin.municipalities.store');
+        if ($districtId) {
+            $url .= "&district_id=eq.$districtId";
+        }
 
-Route::delete('municipality/delete', [DistrictAdminMunicipalityController::class, 'destroy'])
-    ->name('district-admin.municipalities.destroy');
+        return Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ])->get($url)->json();
+    });
 
-Route::patch('municipality/{id}', [DistrictAdminMunicipalityController::class, 'update'])
-    ->name('district-admin.municipalities.update');
+    Route::get('schools', function (\Illuminate\Http\Request $request) {
+        $municipalityId = $request->query('municipality_id');
 
-Route::get('schools-management', [DistrictAdminController::class, 'schools'])
-    ->name('district-admin.schools.index');
+        $url = env('SUPABASE_URL') . '/rest/v1/schools?select=school_id,name,municipality_id,district_id&order=name.asc';
 
-Route::post('schools-management', [DistrictAdminSchoolController::class, 'store'])
-    ->name('district-admin.schools.store');
+        if ($municipalityId) {
+            $url .= "&municipality_id=eq.$municipalityId";
+        }
 
-Route::delete('schools-management/delete', [DistrictAdminSchoolController::class, 'destroy'])
-    ->name('district-admin.schools.destroy');
+        return Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ])->get($url)->json();
+    });
 
-Route::patch('schools-management/{id}', [DistrictAdminSchoolController::class, 'update'])
-    ->name('district-admin.schools.update');
+    Route::get('municipality', [DistrictAdminController::class, 'municipalities'])
+        ->name('district-admin.municipalities.index');
 
+    Route::post('municipality', [DistrictAdminMunicipalityController::class, 'store'])
+        ->name('district-admin.municipalities.store');
+
+    Route::delete('municipality/delete', [DistrictAdminMunicipalityController::class, 'destroy'])
+        ->name('district-admin.municipalities.destroy');
+
+    Route::patch('municipality/{id}', [DistrictAdminMunicipalityController::class, 'update'])
+        ->name('district-admin.municipalities.update');
+
+    Route::get('schools-management', [DistrictAdminController::class, 'schools'])
+        ->name('district-admin.schools.index');
+
+    Route::post('schools-management', [DistrictAdminSchoolController::class, 'store'])
+        ->name('district-admin.schools.store');
+
+    Route::delete('schools-management/delete', [DistrictAdminSchoolController::class, 'destroy'])
+        ->name('district-admin.schools.destroy');
+
+    Route::patch('schools-management/{id}', [DistrictAdminSchoolController::class, 'update'])
+        ->name('district-admin.schools.update');
+
+    Route::get('school-year', [DistrictAdminController::class, 'schoolYears'])
+        ->name('district-admin.school-year.index');
+
+    Route::post('school-year', [DistrictAdminSchoolYearController::class, 'store'])
+        ->name('district-admin.school-year.store');
+
+    Route::delete('school-year/delete', [DistrictAdminSchoolYearController::class, 'destroy'])
+        ->name('district-admin.school-year.destroy');
+
+    Route::patch('school-year/{id}', [DistrictAdminSchoolYearController::class, 'update'])
+        ->name('district-admin.school-year.update');
 });

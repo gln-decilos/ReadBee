@@ -1,10 +1,20 @@
+@props([
+    'municipalities' => [],
+    'districts' => [],
+    'page' => 1,
+    'perPage' => 5,
+])
+
 @php
     $districtOptions = $districts;
 @endphp
 
 <div x-data='{
-    municipalities: @json($municipalities),
+    allMunicipalities: @json($municipalities),
     districts: @json($districtOptions),
+
+    page: {{ (int) $page }},
+    perPage: {{ (int) $perPage }},
 
     selectedRows: [],
     selectAll: false,
@@ -31,10 +41,52 @@
         logo: ""
     },
 
+    get total() {
+        return this.allMunicipalities.length;
+    },
+
+    get lastPage() {
+        return Math.max(Math.ceil(this.total / this.perPage), 1);
+    },
+
+    get paginatedMunicipalities() {
+        const start = (this.page - 1) * this.perPage;
+        const end = start + this.perPage;
+        return this.allMunicipalities.slice(start, end);
+    },
+
+    get startItem() {
+        if (this.total === 0) return 0;
+        return (this.page - 1) * this.perPage + 1;
+    },
+
+    get endItem() {
+        return Math.min(this.page * this.perPage, this.total);
+    },
+
+    visiblePages() {
+        let start = Math.max(1, this.page - 2);
+        let end = Math.min(this.lastPage, this.page + 2);
+
+        const pages = [];
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+        return pages;
+    },
+
+    goToPage(pageNumber) {
+        if (pageNumber >= 1 && pageNumber <= this.lastPage) {
+            this.page = pageNumber;
+            this.selectedRows = [];
+            this.selectAll = false;
+        }
+    },
+
     handleSelectAll() {
         this.selectAll = !this.selectAll;
         this.selectedRows = this.selectAll
-            ? this.municipalities.map(m => String(m.municipality_id))
+            ? this.paginatedMunicipalities.map(m => String(m.municipality_id))
             : [];
     },
 
@@ -47,7 +99,9 @@
             this.selectedRows.push(id);
         }
 
-        this.selectAll = this.selectedRows.length === this.municipalities.length && this.municipalities.length > 0;
+        this.selectAll =
+            this.paginatedMunicipalities.length > 0 &&
+            this.selectedRows.length === this.paginatedMunicipalities.length;
     },
 
     deleteRow(id) {
@@ -82,9 +136,13 @@
             const data = await response.json();
 
             if (data.success) {
-                this.municipalities = this.municipalities.filter(
+                this.allMunicipalities = this.allMunicipalities.filter(
                     municipality => !idsToDelete.includes(String(municipality.municipality_id))
                 );
+
+                if (this.page > this.lastPage) {
+                    this.page = this.lastPage;
+                }
 
                 this.selectedRows = [];
                 this.selectAll = false;
@@ -140,7 +198,9 @@
                     : { district_name: "-" }
             };
 
-            this.municipalities.unshift(newMunicipality);
+            this.allMunicipalities.unshift(newMunicipality);
+            this.page = 1;
+
             this.showAddForm = false;
             this.successMessage = data.message || "Municipality created successfully.";
             this.successModal = true;
@@ -194,13 +254,13 @@
                 d => String(d.district_id) === String(data.municipality.district_id)
             );
 
-            const index = this.municipalities.findIndex(
+            const index = this.allMunicipalities.findIndex(
                 m => String(m.municipality_id) === String(data.municipality.municipality_id)
             );
 
             if (index !== -1) {
-                this.municipalities[index] = {
-                    ...this.municipalities[index],
+                this.allMunicipalities[index] = {
+                    ...this.allMunicipalities[index],
                     ...data.municipality,
                     districts: selectedDistrict
                         ? { district_name: selectedDistrict.district_name }
@@ -251,11 +311,7 @@
         </div>
 
         <div x-show="showAddForm" x-transition class="px-6 mb-6">
-            <form
-                x-ref="createForm"
-                enctype="multipart/form-data"
-                @submit.prevent="confirmModal = true"
-            >
+            <form x-ref="createForm" enctype="multipart/form-data" @submit.prevent="confirmModal = true">
                 @csrf
 
                 <x-common.component-card title="Add New Municipality">
@@ -321,11 +377,7 @@
         </div>
 
         <div x-show="showEditForm" x-transition class="px-6 mb-6">
-            <form
-                x-ref="editForm"
-                enctype="multipart/form-data"
-                @submit.prevent="updateMunicipality()"
-            >
+            <form x-ref="editForm" enctype="multipart/form-data" @submit.prevent="updateMunicipality()">
                 @csrf
                 <input type="hidden" name="municipality_id" x-model="editMunicipality.municipality_id">
 
@@ -443,7 +495,7 @@
                 </thead>
 
                 <tbody>
-                    <template x-for="municipality in municipalities" :key="municipality.municipality_id">
+                    <template x-for="municipality in paginatedMunicipalities" :key="municipality.municipality_id">
                         <tr class="border-b border-gray-100 dark:border-white/[0.05]" :data-id="municipality.municipality_id">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
@@ -516,14 +568,64 @@
                             </td>
                         </tr>
                     </template>
+
+                    <template x-if="paginatedMunicipalities.length === 0">
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                No municipalities found.
+                            </td>
+                        </tr>
+                    </template>
                 </tbody>
             </table>
         </div>
+
+        <div x-show="!showAddForm && !showEditForm" x-transition class="flex items-center justify-between px-6 pb-6">
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                Showing
+                <span class="font-medium" x-text="startItem"></span>
+                to
+                <span class="font-medium" x-text="endItem"></span>
+                of
+                <span class="font-medium" x-text="total"></span>
+                municipalities
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    @click="goToPage(page - 1)"
+                    :disabled="page <= 1"
+                    class="inline-flex items-center rounded-lg border px-3 py-2 text-sm disabled:pointer-events-none disabled:border-gray-200 disabled:text-gray-400 dark:disabled:border-gray-800 dark:disabled:text-gray-600 border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800"
+                >
+                    Previous
+                </button>
+
+                <template x-for="pageNumber in visiblePages()" :key="pageNumber">
+                    <button
+                        type="button"
+                        @click="goToPage(pageNumber)"
+                        class="inline-flex min-w-[40px] items-center justify-center rounded-lg border px-3 py-2 text-sm"
+                        :class="pageNumber === page
+                            ? 'border-brand-500 bg-brand-500 text-white'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800'"
+                        x-text="pageNumber"
+                    ></button>
+                </template>
+
+                <button
+                    type="button"
+                    @click="goToPage(page + 1)"
+                    :disabled="page >= lastPage"
+                    class="inline-flex items-center rounded-lg border px-3 py-2 text-sm disabled:pointer-events-none disabled:border-gray-200 disabled:text-gray-400 dark:disabled:border-gray-800 dark:disabled:text-gray-600 border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800"
+                >
+                    Next
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div x-show="confirmModal"
-         x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div x-show="confirmModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
                 Confirm Municipality Creation
@@ -542,23 +644,17 @@
         </div>
     </div>
 
-    <div x-show="successModal"
-         x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div x-show="successModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md text-center">
             <div class="flex justify-center mb-4">
                 <div class="flex items-center justify-center w-14 h-14 rounded-full bg-green-100">
                     <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor"
                          viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M5 13l4 4L19 7"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                     </svg>
                 </div>
             </div>
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                Success
-            </h3>
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Success</h3>
             <p class="mt-2 text-sm text-gray-500" x-text="successMessage"></p>
             <div class="mt-6">
                 <x-ui.button variant="primary" @click="successModal = false">
@@ -568,13 +664,9 @@
         </div>
     </div>
 
-    <div x-show="bulkDeleteModal"
-         x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div x-show="bulkDeleteModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                Confirm Delete
-            </h3>
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Confirm Delete</h3>
             <p class="mt-2 text-sm text-gray-500">
                 <template x-if="deleteMode === 'single'">
                     <span>Are you sure you want to delete this municipality?</span>
@@ -598,17 +690,13 @@
         </div>
     </div>
 
-    <div x-show="deleteSuccessModal"
-         x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div x-show="deleteSuccessModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md text-center">
             <div class="flex justify-center mb-4">
                 <div class="flex items-center justify-center w-14 h-14 rounded-full bg-green-100">
                     <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor"
                          viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M5 13l4 4L19 7"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                     </svg>
                 </div>
             </div>

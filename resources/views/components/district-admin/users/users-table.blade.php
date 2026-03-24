@@ -666,12 +666,41 @@
                     </template>
 
                     <template x-if="paginatedUsers.length === 0">
-                        <tr>
-                            <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                                No users found.
-                            </td>
-                        </tr>
-                    </template>
+                      <tr>
+                          <td colspan="4" class="px-6 py-12">
+                              <div class="flex flex-col items-center justify-center rounded-3xl border border-gray-200 bg-white px-6 py-12 text-center shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+                                  <div class="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:ring-brand-500/20">
+                                      <svg class="h-10 w-10 text-brand-500" viewBox="0 0 24 24" fill="none">
+                                          <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                          <path d="M10 13C11.6569 13 13 11.6569 13 10C13 8.34315 11.6569 7 10 7C8.34315 7 7 8.34315 7 10C7 11.6569 8.34315 13 10 13Z" stroke="currentColor" stroke-width="1.5"/>
+                                          <path d="M20 21V19C20 17.5994 19.0368 16.423 17.7373 16.0996" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                          <path d="M14.7373 7.09961C16.0368 7.42296 17 8.59935 17 10C17 11.4007 16.0368 12.577 14.7373 12.9004" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                      </svg>
+                                  </div>
+
+                                  <div class="max-w-md">
+                                      <h4 class="text-lg font-semibold text-gray-800 dark:text-white">
+                                          No users found
+                                      </h4>
+
+                                      <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                                          There are no user records to display right now. Add a user to start building your user list.
+                                      </p>
+                                  </div>
+
+                                  <div class="mt-6 flex items-center gap-2 rounded-full bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500 dark:bg-white/[0.04] dark:text-gray-400">
+                                      <svg class="h-4 w-4 text-brand-500" viewBox="0 0 24 24" fill="none">
+                                          <path d="M16 21V19C16 17.3431 14.6569 16 13 16H7C5.34315 16 4 17.3431 4 19V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                          <path d="M10 13C11.6569 13 13 11.6569 13 10C13 8.34315 11.6569 7 10 7C8.34315 7 7 8.34315 7 10C7 11.6569 8.34315 13 10 13Z" stroke="currentColor" stroke-width="1.5"/>
+                                          <path d="M20 21V19C20 17.5994 19.0368 16.423 17.7373 16.0996" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                          <path d="M14.7373 7.09961C16.0368 7.42296 17 8.59935 17 10C17 11.4007 16.0368 12.577 14.7373 12.9004" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                      </svg>
+                                      Add your first user to get started
+                                  </div>
+                              </div>
+                          </td>
+                      </tr>
+                  </template>
                 </tbody>
             </table>
         </div>

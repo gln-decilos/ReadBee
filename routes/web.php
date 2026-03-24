@@ -8,6 +8,7 @@ use App\Http\Controllers\DistrictAdmin\DistrictAdminUserController;
 use App\Http\Controllers\DistrictAdmin\DistrictAdminMunicipalityController;
 use App\Http\Controllers\DistrictAdmin\DistrictAdminSchoolController;
 use App\Http\Controllers\DistrictAdmin\DistrictAdminSchoolYearController;
+use App\Http\Controllers\Auth\SignInController;
 
 // dashboard pages
 Route::get('/', function () {
@@ -58,9 +59,13 @@ Route::get('/signin', function () {
     return view('pages.auth.signin', ['title' => 'Sign In']);
 })->name('signin');
 
+Route::post('/signin', [SignInController::class, 'login'])->name('signin.login');
+
 Route::get('/signup', function () {
     return view('pages.auth.signup', ['title' => 'Sign Up']);
 })->name('signup');
+
+Route::post('/logout', [SignInController::class, 'logout'])->name('logout');
 
 // ui elements pages
 Route::get('/alerts', function () {

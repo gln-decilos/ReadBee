@@ -19,7 +19,6 @@ class SignInController extends Controller
         $anonKey = env('SUPABASE_ANON_KEY');
         $serviceRoleKey = env('SUPABASE_SERVICE_ROLE_KEY');
 
-        // 1. Authenticate user using Supabase Auth
         $authResponse = Http::withHeaders([
             'apikey' => $anonKey,
             'Content-Type' => 'application/json',
@@ -43,14 +42,14 @@ class SignInController extends Controller
             ]);
         }
 
-        // 2. Get user profile
+        // Get user profile with more fields
         $profileResponse = Http::withHeaders([
             'apikey' => $serviceRoleKey,
             'Authorization' => 'Bearer ' . $serviceRoleKey,
             'Content-Type' => 'application/json',
         ])->get($supabaseUrl . '/rest/v1/profiles', [
             'id' => 'eq.' . $userId,
-            'select' => 'id,full_name,email',
+            'select' => 'id,full_name,email,sex,phone,address,title,position,created_at,updated_at',
         ]);
 
         $profile = null;
@@ -60,7 +59,7 @@ class SignInController extends Controller
             $profile = $profiles[0] ?? null;
         }
 
-        // 3. Get all user designations from user_roles joined with roles and scopes
+        // Get all user designations
         $designationResponse = Http::withHeaders([
             'apikey' => $serviceRoleKey,
             'Authorization' => 'Bearer ' . $serviceRoleKey,
@@ -109,7 +108,6 @@ class SignInController extends Controller
 
                     'role_name' => $roleName,
                     'role_description' => $roleDescription,
-
                     'scope_name' => $scopeName,
                     'scope_description' => $scopeDescription,
                     'scope_type' => $scopeType,
@@ -117,14 +115,11 @@ class SignInController extends Controller
             }
         }
 
-        // 4. Pick active designation
-        // First assigned designation becomes active by default
         $activeDesignation = $designations[0] ?? null;
 
         $activeRoleName = strtolower($activeDesignation['role_name'] ?? '');
         $activeScopeType = strtolower($activeDesignation['scope_type'] ?? '');
 
-        // 5. Save session
         session([
             'supabase_access_token' => $authData['access_token'] ?? null,
             'supabase_refresh_token' => $authData['refresh_token'] ?? null,
@@ -142,38 +137,31 @@ class SignInController extends Controller
 
         $request->session()->regenerate();
 
-        // 6. Redirect based on role + scope type
-        // If no designation yet, allow login and send to general dashboard
         if (! $activeDesignation) {
             return redirect()->route('dashboard')
                 ->with('success', 'Signed in successfully. No designation assigned yet.');
         }
 
-        // Admin + District Scope
         if ($activeRoleName === 'admin' && $activeScopeType === 'district') {
             return redirect()->route('district-admin.district-admin-dashboard')
                 ->with('success', 'Signed in successfully.');
         }
 
-        // Admin + School Scope
         if ($activeRoleName === 'admin' && $activeScopeType === 'school') {
             return redirect()->route('school-admin.dashboard')
                 ->with('success', 'Signed in successfully.');
         }
 
-        // Principal
         if ($activeRoleName === 'principal') {
             return redirect()->route('principal.dashboard')
                 ->with('success', 'Signed in successfully.');
         }
 
-        // Teacher
         if ($activeRoleName === 'teacher') {
             return redirect()->route('teacher.dashboard')
                 ->with('success', 'Signed in successfully.');
         }
 
-        // Fallback
         return redirect()->route('dashboard')
             ->with('success', 'Signed in successfully.');
     }

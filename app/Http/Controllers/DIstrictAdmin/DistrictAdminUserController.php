@@ -112,54 +112,96 @@ class DistrictAdminUserController extends Controller
 }
 
     public function getUserDesignations($userId)
-{
-    $userResponse = Http::withHeaders([
-        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-    ])->get(env('SUPABASE_URL') . '/rest/v1/profiles', [
-        'id' => 'eq.' . $userId,
-        'select' => 'id,full_name,email'
-    ]);
+    {
+        $userResponse = Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+        ])->get(env('SUPABASE_URL') . '/rest/v1/profiles', [
+            'id' => 'eq.' . $userId,
+            'select' => 'id,full_name,email'
+        ]);
 
-    $user = $userResponse->json()[0] ?? null;
+        $user = $userResponse->json()[0] ?? null;
 
-    if (!$user) {
-        return response()->json(['error' => 'User not found'], 404);
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $rolesResponse = Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+        ])->get(env('SUPABASE_URL') . '/rest/v1/user_roles', [
+            'user_id' => 'eq.' . $userId,
+            'select' => 'user_role_id,role_id,scope_id,assigned_at,district_id,municipal_id,school_id,roles(name,description),scopes(name,description,scope_type),districts(district_name),municipalities(municipal_name),schools(name)'
+        ]);
+
+        $userRoles = $rolesResponse->json();
+        $designations = [];
+
+        foreach ($userRoles as $role) {
+            $districtName = is_array($role['districts'] ?? null)
+                ? ($role['districts']['district_name'] ?? '')
+                : '';
+
+            $municipalityName = is_array($role['municipalities'] ?? null)
+                ? ($role['municipalities']['municipal_name'] ?? '')
+                : '';
+
+            $schoolName = is_array($role['schools'] ?? null)
+                ? ($role['schools']['name'] ?? '')
+                : '';
+
+            $scopeType = is_array($role['scopes'] ?? null)
+                ? ($role['scopes']['scope_type'] ?? '')
+                : '';
+
+            $assignedTo = '-';
+
+            if ($scopeType === 'district') {
+                $assignedTo = $districtName ?: '-';
+            } elseif ($scopeType === 'school') {
+                $parts = array_filter([$districtName, $municipalityName, $schoolName]);
+                $assignedTo = !empty($parts) ? implode(' / ', $parts) : '-';
+            }
+
+            $designations[] = [
+                'user_role_id' => $role['user_role_id'],
+                'role_id' => $role['role_id'],
+                'scope_id' => $role['scope_id'],
+                'district_id' => $role['district_id'] ?? null,
+                'municipal_id' => $role['municipal_id'] ?? null,
+                'school_id' => $role['school_id'] ?? null,
+
+                'role' => is_array($role['roles'] ?? null)
+                    ? ($role['roles']['name'] ?? 'Unknown Role')
+                    : 'Unknown Role',
+
+                'role_description' => is_array($role['roles'] ?? null)
+                    ? ($role['roles']['description'] ?? '')
+                    : '',
+
+                'scope' => is_array($role['scopes'] ?? null)
+                    ? ($role['scopes']['name'] ?? 'Unknown Scope')
+                    : 'Unknown Scope',
+
+                'scope_description' => is_array($role['scopes'] ?? null)
+                    ? ($role['scopes']['description'] ?? '')
+                    : '',
+
+                'scope_type' => $scopeType,
+                'district_name' => $districtName,
+                'municipal_name' => $municipalityName,
+                'school_name' => $schoolName,
+                'assigned_to' => $assignedTo,
+                'assigned_at' => $role['assigned_at'],
+            ];
+        }
+
+        return response()->json([
+            'user' => $user,
+            'designations' => $designations
+        ]);
     }
-
-    $rolesResponse = Http::withHeaders([
-        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-    ])->get(env('SUPABASE_URL') . '/rest/v1/user_roles', [
-        'user_id' => 'eq.' . $userId,
-        'select' => 'user_role_id,role_id,scope_id,assigned_at,district_id,municipal_id,school_id,roles(name,description),scopes(name,description)'
-    ]);
-
-    $userRoles = $rolesResponse->json();
-
-    $designations = [];
-
-    foreach ($userRoles as $role) {
-        $designations[] = [
-            'user_role_id' => $role['user_role_id'],
-            'role_id' => $role['role_id'],
-            'scope_id' => $role['scope_id'],
-            'district_id' => $role['district_id'] ?? null,
-            'municipal_id' => $role['municipal_id'] ?? null,
-            'school_id' => $role['school_id'] ?? null,
-            'role' => is_array($role['roles'] ?? null) ? $role['roles']['name'] : 'Unknown Role',
-            'role_description' => is_array($role['roles'] ?? null) ? $role['roles']['description'] : '',
-            'scope' => is_array($role['scopes'] ?? null) ? $role['scopes']['name'] : 'Unknown Scope',
-            'scope_description' => is_array($role['scopes'] ?? null) ? $role['scopes']['description'] : '',
-            'assigned_at' => $role['assigned_at'],
-        ];
-    }
-
-    return response()->json([
-        'user' => $user,
-        'designations' => $designations
-    ]);
-}
 
     public function destroyDesignation(Request $request)
 {

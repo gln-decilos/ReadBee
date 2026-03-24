@@ -217,7 +217,7 @@
 
         try {
             const response = await fetch(
-                `/district-admin/schools-data?municipality_id=${this.newDesignation.municipal_id}`,
+                `/district-admin/schools?municipality_id=${this.newDesignation.municipal_id}`,
                 { headers: { Accept: "application/json" } }
             );
 
@@ -1014,6 +1014,7 @@
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scope</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Assigned To</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Assigned Date</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -1021,27 +1022,44 @@
                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                 <template x-for="(designation, index) in userDesignations" :key="index">
                                     <tr>
-                                        <td class="px-4 py-3">
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white" x-text="designation.role"></div>
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="text-sm text-gray-900 dark:text-white" x-text="designation.scope"></div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400" x-text="designation.scope_description"></div>
-                                        </td>
-                                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                                            <span x-text="formatDate(designation.assigned_at)"></span>
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <button
-                                                @click="confirmRemoveDesignation(
-                                                    { user_role_id: designation.user_role_id },
-                                                    index
-                                                )"
-                                                class="text-red-600 hover:text-red-500 text-sm font-medium">
-                                                Remove
-                                            </button>
-                                        </td>
-                                    </tr>
+                                      <td class="px-4 py-3">
+                                          <div class="text-sm font-medium text-gray-900 dark:text-white" x-text="designation.role"></div>
+                                      </td>
+
+                                      <td class="px-4 py-3">
+                                          <div class="text-sm text-gray-900 dark:text-white" x-text="designation.scope"></div>
+                                          <div class="text-xs text-gray-500 dark:text-gray-400" x-text="designation.scope_description"></div>
+                                      </td>
+
+                                      <td class="px-4 py-3">
+                                          <div class="text-sm text-gray-900 dark:text-white" x-text="designation.assigned_to || '-'"></div>
+                                          <template x-if="designation.scope_type === 'school'">
+                                              <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                  School Assignment
+                                              </div>
+                                          </template>
+                                          <template x-if="designation.scope_type === 'district'">
+                                              <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                  District Assignment
+                                              </div>
+                                          </template>
+                                      </td>
+
+                                      <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                          <span x-text="formatDate(designation.assigned_at)"></span>
+                                      </td>
+
+                                      <td class="px-4 py-3">
+                                          <button
+                                              @click="confirmRemoveDesignation(
+                                                  { user_role_id: designation.user_role_id },
+                                                  index
+                                              )"
+                                              class="text-red-600 hover:text-red-500 text-sm font-medium">
+                                              Remove
+                                          </button>
+                                      </td>
+                                  </tr>
                                 </template>
                             </tbody>
                         </table>

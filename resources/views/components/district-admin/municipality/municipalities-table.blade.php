@@ -570,12 +570,35 @@
                     </template>
 
                     <template x-if="paginatedMunicipalities.length === 0">
-                        <tr>
-                            <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                                No municipalities found.
-                            </td>
-                        </tr>
-                    </template>
+                      <tr>
+                          <td colspan="4" class="px-6 py-12">
+                              <div class="flex flex-col items-center justify-center rounded-3xl border border-gray-200 bg-white px-6 py-12 text-center shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+                                  <div class="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:ring-brand-500/20">
+                                      <svg class="h-10 w-10 text-brand-500" viewBox="0 0 24 24" fill="none">
+                                          <path d="M3 21H21M5 21V7.8C5 7.35817 5.35817 7 5.8 7H10.2C10.6418 7 11 7.35817 11 7.8V21M13 21V3.8C13 3.35817 13.3582 3 13.8 3H18.2C18.6418 3 19 3.35817 19 3.8V21M7 10H9M7 13H9M15 6H17M15 9H17M15 12H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                      </svg>
+                                  </div>
+
+                                  <div class="max-w-md">
+                                      <h4 class="text-lg font-semibold text-gray-800 dark:text-white">
+                                          No municipalities found
+                                      </h4>
+
+                                      <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                                          There are no municipality records available yet. Add a municipality to start organizing schools by area.
+                                      </p>
+                                  </div>
+
+                                  <div class="mt-6 flex items-center gap-2 rounded-full bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500 dark:bg-white/[0.04] dark:text-gray-400">
+                                      <svg class="h-4 w-4 text-brand-500" viewBox="0 0 24 24" fill="none">
+                                          <path d="M3 21H21M5 21V7.8C5 7.35817 5.35817 7 5.8 7H10.2C10.6418 7 11 7.35817 11 7.8V21M13 21V3.8C13 3.35817 13.3582 3 13.8 3H18.2C18.6418 3 19 3.35817 19 3.8V21M7 10H9M7 13H9M15 6H17M15 9H17M15 12H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                      </svg>
+                                      Add your first municipality to get started
+                                  </div>
+                              </div>
+                          </td>
+                      </tr>
+                  </template>
                 </tbody>
             </table>
         </div>

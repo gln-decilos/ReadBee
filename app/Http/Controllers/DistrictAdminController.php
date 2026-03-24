@@ -141,7 +141,7 @@ class DistrictAdminController extends Controller
             'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
             'Accept' => 'application/json',
         ])->get(
-            env('SUPABASE_URL') . '/rest/v1/school_year?select=year_id,start_date,end_date,created_at&order=start_date.desc'
+            env('SUPABASE_URL') . '/rest/v1/school_year?select=year_id,start_date,end_date,created_at,quarter(quarter_id,quarter_number,quarter_name,start_date,end_date)&order=start_date.desc'
         );
 
         $schoolYears = $schoolYearsResponse->successful()

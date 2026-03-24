@@ -747,12 +747,39 @@
                     </template>
 
                     <template x-if="paginatedSchools.length === 0">
-                        <tr>
-                            <td colspan="7" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                                No schools found.
-                            </td>
-                        </tr>
-                    </template>
+                      <tr>
+                          <td colspan="7" class="px-6 py-12">
+                              <div class="flex flex-col items-center justify-center rounded-3xl border border-gray-200 bg-white px-6 py-12 text-center shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+                                  <div class="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:ring-brand-500/20">
+                                      <svg class="h-10 w-10 text-brand-500" viewBox="0 0 24 24" fill="none">
+                                          <path d="M3 9L12 4L21 9L12 14L3 9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                          <path d="M6 11.5V16.5C6 16.5 8.5 19 12 19C15.5 19 18 16.5 18 16.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                          <path d="M21 9V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                      </svg>
+                                  </div>
+
+                                  <div class="max-w-md">
+                                      <h4 class="text-lg font-semibold text-gray-800 dark:text-white">
+                                          No schools found
+                                      </h4>
+
+                                      <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                                          There are no school records to display right now. Add a school to start building your school list.
+                                      </p>
+                                  </div>
+
+                                  <div class="mt-6 flex items-center gap-2 rounded-full bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500 dark:bg-white/[0.04] dark:text-gray-400">
+                                      <svg class="h-4 w-4 text-brand-500" viewBox="0 0 24 24" fill="none">
+                                          <path d="M3 9L12 4L21 9L12 14L3 9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                          <path d="M6 11.5V16.5C6 16.5 8.5 19 12 19C15.5 19 18 16.5 18 16.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                          <path d="M21 9V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                      </svg>
+                                      Add your first school to get started
+                                  </div>
+                              </div>
+                          </td>
+                      </tr>
+                  </template>
                 </tbody>
             </table>
         </div>

@@ -34,15 +34,92 @@
         end_date: ""
     },
 
+    quarters: [],
+
     editSchoolYear: {
         year_id: "",
         start_date: "",
-        end_date: ""
+        end_date: "",
+        quarters: []
+    },
+
+    ordinalQuarterName(number) {
+        const names = {
+            1: "First Quarter",
+            2: "Second Quarter",
+            3: "Third Quarter",
+            4: "Fourth Quarter",
+            5: "Fifth Quarter",
+            6: "Sixth Quarter",
+            7: "Seventh Quarter",
+            8: "Eighth Quarter",
+            9: "Ninth Quarter",
+            10: "Tenth Quarter"
+        };
+
+        return names[number] || `Quarter ${number}`;
+    },
+
+    initQuarterPickers(scope = "create") {
+        this.$nextTick(() => {
+            const container =
+                scope === "create"
+                    ? this.$refs.createQuarterContainer
+                    : this.$refs.editQuarterContainer;
+
+            if (!container) return;
+
+            const startInputs = container.querySelectorAll(".quarter-start-picker");
+            const endInputs = container.querySelectorAll(".quarter-end-picker");
+            const sourceList = scope === "create" ? this.quarters : this.editSchoolYear.quarters;
+
+            startInputs.forEach((input, index) => {
+                if (input._flatpickr) {
+                    input._flatpickr.destroy();
+                }
+
+                flatpickr(input, {
+                    dateFormat: "Y-m-d",
+                    allowInput: false,
+                    defaultDate: sourceList[index]?.start_date || null,
+                    onChange: (selectedDates, dateStr) => {
+                        sourceList[index].start_date = dateStr;
+
+                        const endInput = endInputs[index];
+                        if (endInput?._flatpickr) {
+                            endInput._flatpickr.set("minDate", dateStr || null);
+                        }
+                    }
+                });
+            });
+
+            endInputs.forEach((input, index) => {
+                if (input._flatpickr) {
+                    input._flatpickr.destroy();
+                }
+
+                flatpickr(input, {
+                    dateFormat: "Y-m-d",
+                    allowInput: false,
+                    defaultDate: sourceList[index]?.end_date || null,
+                    onChange: (selectedDates, dateStr) => {
+                        sourceList[index].end_date = dateStr;
+
+                        const startInput = startInputs[index];
+                        if (startInput?._flatpickr) {
+                            startInput._flatpickr.set("maxDate", dateStr || null);
+                        }
+                    }
+                });
+            });
+        });
     },
 
     init() {
+        this.quarters = this.defaultQuarters(3);
+
         this.$nextTick(() => {
-            const createStartPicker = flatpickr(this.$refs.createStartDate, {
+            flatpickr(this.$refs.createStartDate, {
                 dateFormat: "Y-m-d",
                 allowInput: false,
                 onChange: (selectedDates, dateStr) => {
@@ -53,7 +130,7 @@
                 }
             });
 
-            const createEndPicker = flatpickr(this.$refs.createEndDate, {
+            flatpickr(this.$refs.createEndDate, {
                 dateFormat: "Y-m-d",
                 allowInput: false,
                 onChange: (selectedDates, dateStr) => {
@@ -121,6 +198,8 @@
                     this.$refs.createStartDate._flatpickr.set("maxDate", value || null);
                 }
             });
+
+            this.initQuarterPickers("create");
         });
     },
 
@@ -158,6 +237,64 @@
         return pages;
     },
 
+    defaultQuarters(count = 3) {
+        return Array.from({ length: count }, (_, index) => ({
+            quarter_id: "",
+            quarter_number: index + 1,
+            quarter_name: this.ordinalQuarterName(index + 1),
+            start_date: "",
+            end_date: ""
+        }));
+    },
+
+    renumberQuarters(list) {
+        return list.map((quarter, index) => ({
+            ...quarter,
+            quarter_number: index + 1,
+            quarter_name: this.ordinalQuarterName(index + 1)
+        }));
+    },
+
+    addQuarter() {
+        const nextNumber = this.quarters.length + 1;
+        this.quarters.push({
+            quarter_id: "",
+            quarter_number: nextNumber,
+            quarter_name: this.ordinalQuarterName(nextNumber),
+            start_date: "",
+            end_date: ""
+        });
+        this.quarters = this.renumberQuarters(this.quarters);
+        this.initQuarterPickers("create");
+    },
+
+    removeQuarter(index) {
+        if (this.quarters.length <= 1) return;
+        this.quarters.splice(index, 1);
+        this.quarters = this.renumberQuarters(this.quarters);
+        this.initQuarterPickers("create");
+    },
+
+    addEditQuarter() {
+        const nextNumber = this.editSchoolYear.quarters.length + 1;
+        this.editSchoolYear.quarters.push({
+            quarter_id: "",
+            quarter_number: nextNumber,
+            quarter_name: this.ordinalQuarterName(nextNumber),
+            start_date: "",
+            end_date: ""
+        });
+        this.editSchoolYear.quarters = this.renumberQuarters(this.editSchoolYear.quarters);
+        this.initQuarterPickers("edit");
+    },
+
+    removeEditQuarter(index) {
+        if (this.editSchoolYear.quarters.length <= 1) return;
+        this.editSchoolYear.quarters.splice(index, 1);
+        this.editSchoolYear.quarters = this.renumberQuarters(this.editSchoolYear.quarters);
+        this.initQuarterPickers("edit");
+    },
+
     goToPage(pageNumber) {
         if (pageNumber >= 1 && pageNumber <= this.lastPage) {
             this.page = pageNumber;
@@ -182,6 +319,11 @@
             month: "long",
             day: "numeric"
         });
+    },
+
+    sortedQuarters(quarters) {
+        if (!Array.isArray(quarters)) return [];
+        return [...quarters].sort((a, b) => a.quarter_number - b.quarter_number);
     },
 
     handleSelectAll() {
@@ -225,6 +367,7 @@
 
     async addSchoolYear() {
         this.formErrors = {};
+        this.quarters = this.renumberQuarters(this.quarters);
 
         const formData = new FormData(this.$refs.createForm);
 
@@ -256,6 +399,7 @@
                 start_date: "",
                 end_date: ""
             };
+            this.quarters = this.defaultQuarters(3);
 
             if (this.$refs.createStartDate?._flatpickr) {
                 this.$refs.createStartDate._flatpickr.clear();
@@ -266,6 +410,8 @@
                 this.$refs.createEndDate._flatpickr.clear();
                 this.$refs.createEndDate._flatpickr.set("minDate", null);
             }
+
+            this.$nextTick(() => this.initQuarterPickers("create"));
 
             this.selectedRows = [];
             this.selectAll = false;
@@ -280,7 +426,10 @@
         this.editSchoolYear = {
             year_id: schoolYear.year_id,
             start_date: schoolYear.start_date || "",
-            end_date: schoolYear.end_date || ""
+            end_date: schoolYear.end_date || "",
+            quarters: (schoolYear.quarter || []).length
+                ? this.renumberQuarters(this.sortedQuarters(schoolYear.quarter))
+                : this.defaultQuarters(3)
         };
 
         this.showEditForm = true;
@@ -296,52 +445,55 @@
                 this.$refs.editEndDate._flatpickr.setDate(this.editSchoolYear.end_date || null, false);
                 this.$refs.editEndDate._flatpickr.set("minDate", this.editSchoolYear.start_date || null);
             }
+
+            this.initQuarterPickers("edit");
         });
     },
 
     async updateSchoolYear() {
-        this.editFormErrors = {};
+      this.editFormErrors = {};
+      this.editSchoolYear.quarters = this.renumberQuarters(this.editSchoolYear.quarters);
 
-        const formData = new FormData(this.$refs.editForm);
-        formData.append("_method", "PATCH");
+      const formData = new FormData(this.$refs.editForm);
+      formData.append("_method", "PATCH");
 
-        try {
-            const response = await fetch(`/district-admin/school-year/${this.editSchoolYear.year_id}`, {
-                method: "POST",
-                headers: {
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                    "Accept": "application/json"
-                },
-                body: formData
-            });
+      try {
+          const response = await fetch(`/district-admin/school-year/${this.editSchoolYear.year_id}`, {
+              method: "POST",
+              headers: {
+                  "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                  "Accept": "application/json"
+              },
+              body: formData
+          });
 
-            const data = await response.json();
+          const data = await response.json();
 
-            if (!response.ok) {
-                this.editFormErrors = data.errors || {};
-                alert(data.message || "Failed to update school year.");
-                return;
-            }
+          if (!response.ok) {
+              this.editFormErrors = data.errors || {};
+              alert(data.message || "Failed to update school year.");
+              return;
+          }
 
-            const index = this.allSchoolYears.findIndex(
-                item => String(item.year_id) === String(data.schoolYear.year_id)
-            );
+          const index = this.allSchoolYears.findIndex(
+              item => String(item.year_id) === String(data.schoolYear.year_id)
+          );
 
-            if (index !== -1) {
-                this.allSchoolYears[index] = {
-                    ...this.allSchoolYears[index],
-                    ...data.schoolYear
-                };
-            }
+          if (index !== -1) {
+              this.allSchoolYears[index] = {
+                  ...this.allSchoolYears[index],
+                  ...data.schoolYear
+              };
+          }
 
-            this.showEditForm = false;
-            this.successMessage = data.message || "School year updated successfully.";
-            this.successModal = true;
-        } catch (error) {
-            console.error("Update error:", error);
-            alert("An error occurred while updating school year.");
-        }
-    },
+          this.showEditForm = false;
+          this.successMessage = data.message || "School year updated successfully.";
+          this.successModal = true;
+      } catch (error) {
+          console.error("Update error:", error);
+          alert("An error occurred while updating school year.");
+      }
+  },
 
     async confirmBulkDelete() {
         const idsToDelete = this.deleteMode === "single" ? [this.deleteId] : this.selectedRows;
@@ -458,6 +610,79 @@
                             <p class="mt-1 text-sm text-red-600" x-text="formErrors.end_date[0]"></p>
                         </template>
                     </div>
+
+                    <div class="col-span-full">
+                        <div class="mb-3 mt-4 flex items-center justify-between">
+                            <h4 class="text-md font-semibold text-gray-800 dark:text-white">
+                                Quarters
+                            </h4>
+
+                            <x-ui.button type="button" variant="outline" @click="addQuarter()">
+                                Add Quarter
+                            </x-ui.button>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2" x-ref="createQuarterContainer">
+                            <template x-for="(quarter, index) in quarters" :key="`${quarter.quarter_number}-${index}`">
+                                <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                                    <div class="mb-3 flex items-center justify-between gap-3">
+                                        <h5 class="text-sm font-semibold text-gray-800 dark:text-white" x-text="quarter.quarter_name"></h5>
+
+                                        <button
+                                            type="button"
+                                            @click="removeQuarter(index)"
+                                            :disabled="quarters.length <= 1"
+                                            class="text-sm text-red-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+
+                                    <input type="hidden" :name="`quarters[${index}][quarter_id]`" x-model="quarter.quarter_id">
+                                    <input type="hidden" :name="`quarters[${index}][quarter_number]`" x-model="quarter.quarter_number">
+                                    <input type="hidden" :name="`quarters[${index}][quarter_name]`" x-model="quarter.quarter_name">
+
+                                    <div class="mb-3">
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            Quarter Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            :value="quarter.quarter_name"
+                                            readonly
+                                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                        />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            Start Date
+                                        </label>
+                                        <input
+                                            type="text"
+                                            :name="`quarters[${index}][start_date]`"
+                                            x-model="quarter.start_date"
+                                            placeholder="Select quarter start date"
+                                            class="quarter-start-picker dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            End Date
+                                        </label>
+                                        <input
+                                            type="text"
+                                            :name="`quarters[${index}][end_date]`"
+                                            x-model="quarter.end_date"
+                                            placeholder="Select quarter end date"
+                                            class="quarter-end-picker dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </x-common.component-card>
 
                 <div class="mt-4 flex justify-end">
@@ -508,6 +733,79 @@
                         <template x-if="editFormErrors.end_date">
                             <p class="mt-1 text-sm text-red-600" x-text="editFormErrors.end_date[0]"></p>
                         </template>
+                    </div>
+
+                    <div class="col-span-full">
+                        <div class="mb-3 mt-4 flex items-center justify-between">
+                            <h4 class="text-md font-semibold text-gray-800 dark:text-white">
+                                Quarters
+                            </h4>
+
+                            <x-ui.button type="button" variant="outline" @click="addEditQuarter()">
+                                Add Quarter
+                            </x-ui.button>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2" x-ref="editQuarterContainer">
+                            <template x-for="(quarter, index) in editSchoolYear.quarters" :key="`${quarter.quarter_number}-${index}`">
+                                <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                                    <div class="mb-3 flex items-center justify-between gap-3">
+                                        <h5 class="text-sm font-semibold text-gray-800 dark:text-white" x-text="quarter.quarter_name"></h5>
+
+                                        <button
+                                            type="button"
+                                            @click="removeEditQuarter(index)"
+                                            :disabled="editSchoolYear.quarters.length <= 1"
+                                            class="text-sm text-red-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+
+                                    <input type="hidden" :name="`quarters[${index}][quarter_id]`" x-model="quarter.quarter_id">
+                                    <input type="hidden" :name="`quarters[${index}][quarter_number]`" x-model="quarter.quarter_number">
+                                    <input type="hidden" :name="`quarters[${index}][quarter_name]`" x-model="quarter.quarter_name">
+
+                                    <div class="mb-3">
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            Quarter Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            :value="quarter.quarter_name"
+                                            readonly
+                                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                        />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            Start Date
+                                        </label>
+                                        <input
+                                            type="text"
+                                            :name="`quarters[${index}][start_date]`"
+                                            x-model="quarter.start_date"
+                                            placeholder="Select quarter start date"
+                                            class="quarter-start-picker dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            End Date
+                                        </label>
+                                        <input
+                                            type="text"
+                                            :name="`quarters[${index}][end_date]`"
+                                            x-model="quarter.end_date"
+                                            placeholder="Select quarter end date"
+                                            class="quarter-end-picker dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                                        />
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </x-common.component-card>
 
@@ -571,23 +869,42 @@
                             </div>
                         </div>
 
-                        <div class="space-y-3">
-                            <div class="rounded-xl bg-gray-50 p-3 dark:bg-white/[0.03]">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Start Date</p>
-                                <p
-                                    class="mt-1 text-sm font-medium text-gray-800 dark:text-white"
-                                    x-text="formatDate(schoolYear.start_date)"
-                                ></p>
-                            </div>
+                        <div class="rounded-xl bg-gray-50 p-3 dark:bg-white/[0.03]">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Start Date</p>
+                                    <p
+                                        class="mt-1 text-sm font-medium text-gray-800 dark:text-white"
+                                        x-text="formatDate(schoolYear.start_date)"
+                                    ></p>
+                                </div>
 
-                            <div class="rounded-xl bg-gray-50 p-3 dark:bg-white/[0.03]">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">End Date</p>
-                                <p
-                                    class="mt-1 text-sm font-medium text-gray-800 dark:text-white"
-                                    x-text="formatDate(schoolYear.end_date)"
-                                ></p>
+                                <div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">End Date</p>
+                                    <p
+                                        class="mt-1 text-sm font-medium text-gray-800 dark:text-white"
+                                        x-text="formatDate(schoolYear.end_date)"
+                                    ></p>
+                                </div>
                             </div>
                         </div>
+
+                        <template x-if="schoolYear.quarter && schoolYear.quarter.length">
+                            <div class="mt-4 space-y-2">
+                                <p class="text-sm font-semibold text-gray-800 dark:text-white">Quarters</p>
+
+                                <template x-for="quarter in sortedQuarters(schoolYear.quarter)" :key="quarter.quarter_id">
+                                    <div class="rounded-xl bg-gray-50 p-3 dark:bg-white/[0.03]">
+                                        <p class="text-sm font-medium text-gray-700 dark:text-white" x-text="quarter.quarter_name"></p>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            <span x-text="formatDate(quarter.start_date)"></span>
+                                            -
+                                            <span x-text="formatDate(quarter.end_date)"></span>
+                                        </p>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
 
                         <div class="mt-5 flex items-center justify-end gap-3">
                             <button
@@ -625,10 +942,41 @@
             </div>
 
             <template x-if="paginatedSchoolYears.length === 0">
-                <div class="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                    No school years found.
-                </div>
-            </template>
+              <div class="flex flex-col items-center justify-center rounded-3xl border border-gray-200 bg-white px-6 py-16 text-center shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+                  <div class="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-50 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:ring-brand-500/20">
+                      <svg class="h-10 w-10 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="1.8"
+                              d="M8 7V3m8 4V3m-9 8h10m-11 10h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                      </svg>
+                  </div>
+
+                  <div class="max-w-md">
+                      <h4 class="text-lg font-semibold text-gray-800 dark:text-white">
+                          No school years yet
+                      </h4>
+
+                      <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                          You haven’t added any school year records yet. Start by creating your first school year setup and its quarters.
+                      </p>
+                  </div>
+
+                  <div class="mt-6 flex items-center gap-2 rounded-full bg-gray-50 px-4 py-2 text-xs font-medium text-gray-500 dark:bg-white/[0.04] dark:text-gray-400">
+                      <svg class="h-4 w-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 4v16m8-8H4"
+                          />
+                      </svg>
+                      Click “Add School Year” to get started
+                  </div>
+              </div>
+          </template>
         </div>
 
         <div x-show="!showAddForm && !showEditForm" x-transition class="flex items-center justify-between px-6 pb-6">

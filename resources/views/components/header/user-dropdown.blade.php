@@ -1,25 +1,67 @@
-<div class="relative" x-data="{
-    dropdownOpen: false,
-    toggleDropdown() {
-        this.dropdownOpen = !this.dropdownOpen;
-    },
-    closeDropdown() {
-        this.dropdownOpen = false;
+@php
+    $user = session('supabase_user', []);
+    $designation = session('active_designation', []);
+    $designations = session('user_designations', []);
+
+    $fullName = $user['full_name'] ?? 'Guest User';
+    $email = $user['email'] ?? 'No email';
+    $roleName = $designation['role_name'] ?? null;
+    $scopeType = $designation['scope_type'] ?? null;
+
+    $displayRole = $roleName
+        ? $roleName . ($scopeType ? ' · ' . ucfirst($scopeType) : '')
+        : 'No designation assigned';
+
+    $profilePath = '/profile';
+
+    if (($roleName ?? '') === 'Admin' && ($scopeType ?? '') === 'district') {
+        $profilePath = '/district-admin/profile';
+    } elseif (($roleName ?? '') === 'Admin' && ($scopeType ?? '') === 'school') {
+        $profilePath = '/school-admin/profile';
     }
-}" @click.away="closeDropdown()">
+
+    $parts = preg_split('/\s+/', trim($fullName));
+    $parts = array_values(array_filter($parts));
+
+    if (count($parts) >= 2) {
+        $initials = strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
+    } else {
+        $first = $parts[0] ?? '';
+        $initials = strtoupper(substr($first, 0, 2));
+        $initials = str_pad($initials, 2, 'X');
+    }
+
+    $initialBgClass = 'bg-yellow-100';
+    $initialTextClass = 'text-yellow-600';
+@endphp
+
+<div
+    class="relative"
+    x-data="{
+        dropdownOpen: false,
+        toggleDropdown() {
+            this.dropdownOpen = !this.dropdownOpen;
+        },
+        closeDropdown() {
+            this.dropdownOpen = false;
+        }
+    }"
+    @click.away="closeDropdown()"
+>
     <!-- User Button -->
     <button
         class="flex items-center text-gray-700 dark:text-gray-400"
         @click.prevent="toggleDropdown()"
         type="button"
     >
-        <span class="mr-3 overflow-hidden rounded-full h-11 w-11">
-            <img src="/images/user/owner.png" alt="User" />
+        <span class="mr-3 flex h-11 w-11 items-center justify-center rounded-full text-sm font-medium {{ $initialBgClass }} {{ $initialTextClass }}">
+            {{ $initials }}
         </span>
 
-       <span class="block mr-1 font-medium text-theme-sm">Musharof</span>
+        <span class="block mr-1 font-medium text-theme-sm">
+            {{ $fullName }}
+        </span>
 
-        <!-- Chevron Icon -->
         <svg
             class="w-5 h-5 transition-transform duration-200"
             :class="{ 'rotate-180': dropdownOpen }"
@@ -40,17 +82,69 @@
         x-transition:leave="transition ease-in duration-75"
         x-transition:leave-start="transform opacity-100 scale-100"
         x-transition:leave-end="transform opacity-0 scale-95"
-        class="absolute right-0 mt-[17px] flex w-[260px] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark z-50"
+        class="absolute right-0 z-50 mt-[17px] flex w-[280px] flex-col rounded-2xl border border-gray-200 bg-white p-3 shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark"
         style="display: none;"
     >
         <!-- User Info -->
-        <div>
-            <span class="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">Musharof Chowdhury</span>
-            <span class="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">randomuser@pimjo.com</span>
+        <div class="flex items-start gap-3">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-medium {{ $initialBgClass }} {{ $initialTextClass }}">
+                {{ $initials }}
+            </div>
+
+            <div>
+                <span class="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                    {{ $fullName }}
+                </span>
+                <span class="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
+                    {{ $email }}
+                </span>
+
+                <span class="mt-2 inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-white/5 dark:text-gray-300">
+                    {{ $displayRole }}
+                </span>
+            </div>
         </div>
 
+        <!-- Switch designation if multiple -->
+        @if(count($designations) > 1)
+            <div class="mt-4 border-t border-gray-200 pt-3 dark:border-gray-800">
+                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    Switch designation
+                </p>
+
+                <div class="space-y-2">
+                    @foreach($designations as $item)
+                        @php
+                            $itemLabel = ($item['role_name'] ?? 'Unknown')
+                                . (!empty($item['scope_type']) ? ' · ' . ucfirst($item['scope_type']) : '');
+
+                            $isActive = ($designation['user_role_id'] ?? null) === ($item['user_role_id'] ?? null);
+                        @endphp
+
+                        <form method="POST" action="{{ route('designation.switch') }}">
+                            @csrf
+                            <input type="hidden" name="user_role_id" value="{{ $item['user_role_id'] }}">
+
+                            <button
+                                type="submit"
+                                class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition {{ $isActive
+                                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'
+                                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5' }}"
+                            >
+                                <span>{{ $itemLabel }}</span>
+
+                                @if($isActive)
+                                    <span class="text-xs font-semibold">Active</span>
+                                @endif
+                            </button>
+                        </form>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <!-- Menu Items -->
-        <ul class="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 dark:border-gray-800">
+        <ul class="flex flex-col gap-1 border-b border-gray-200 pt-4 pb-3 dark:border-gray-800">
             @php
                 $menuItems = [
                     [
@@ -63,7 +157,7 @@
                                 fill="currentColor"
                             />
                         </svg>',
-                        'path' => 'profile',
+                        'path' => $profilePath,
                     ],
                     [
                         'text' => 'Account settings',
@@ -75,19 +169,7 @@
                             fill="currentColor"
                         />
                         </svg>',
-                        'path' => 'chat'
-                    ],
-                    [
-                        'text' => 'Support',
-                        'icon' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            fill-rule="evenodd"
-                            clip-rule="evenodd"
-                            d="M3.5 12C3.5 7.30558 7.30558 3.5 12 3.5C16.6944 3.5 20.5 7.30558 20.5 12C20.5 16.6944 16.6944 20.5 12 20.5C7.30558 20.5 3.5 16.6944 3.5 12ZM12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM11.0991 7.52507C11.0991 8.02213 11.5021 8.42507 11.9991 8.42507H12.0001C12.4972 8.42507 12.9001 8.02213 12.9001 7.52507C12.9001 7.02802 12.4972 6.62507 12.0001 6.62507H11.9991C11.5021 6.62507 11.0991 7.02802 11.0991 7.52507ZM12.0001 17.3714C11.5859 17.3714 11.2501 17.0356 11.2501 16.6214V10.9449C11.2501 10.5307 11.5859 10.1949 12.0001 10.1949C12.4143 10.1949 12.7501 10.5307 12.7501 10.9449V16.6214C12.7501 17.0356 12.4143 17.3714 12.0001 17.3714Z"
-                            fill="currentColor"
-                          />
-                        </svg>',
-                        'path' => 'profile'
+                        'path' => $profilePath,
                     ],
                 ];
             @endphp
@@ -96,7 +178,7 @@
                 <li>
                     <a
                         href="{{ $item['path'] }}"
-                        class="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                        class="group flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                     >
                         <span class="text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300">
                             {!! $item['icon'] !!}
@@ -108,11 +190,11 @@
         </ul>
 
         <!-- Sign Out -->
-        {{-- <form method="POST" action="#">
-            @csrf --}}
-            <a
-                href="/signin"
-                class="flex items-center w-full gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button
+                type="submit"
+                class="group mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left font-medium text-gray-700 text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
                 @click="closeDropdown()"
             >
                 <span class="text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300">
@@ -121,8 +203,8 @@
                     </svg>
                 </span>
                 Sign out
-            </a>
-        {{-- </form> --}}
+            </button>
+        </form>
     </div>
     <!-- Dropdown End -->
 </div>

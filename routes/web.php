@@ -9,6 +9,8 @@ use App\Http\Controllers\DistrictAdmin\DistrictAdminMunicipalityController;
 use App\Http\Controllers\DistrictAdmin\DistrictAdminSchoolController;
 use App\Http\Controllers\DistrictAdmin\DistrictAdminSchoolYearController;
 use App\Http\Controllers\Auth\SignInController;
+use App\Http\Controllers\SchoolAdminController;
+
 
 // dashboard pages
 Route::get('/', function () {
@@ -221,4 +223,13 @@ Route::prefix('district-admin')->group(function () {
 
     Route::patch('school-year/{id}', [DistrictAdminSchoolYearController::class, 'update'])
         ->name('district-admin.school-year.update');
+
 });
+
+Route::prefix('school-admin')->group(function () {
+      Route::get('dashboard', [SchoolAdminController::class, 'dashboard'])
+          ->name('school-admin.dashboard');
+
+      Route::get('profile', [SchoolAdminController::class, 'profile'])
+          ->name('school-admin.profile');
+  });

@@ -1,4 +1,4 @@
-@extends('layouts.district-admin-layout')
+@extends('layouts.school-admin-layout')
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="User Profile" />

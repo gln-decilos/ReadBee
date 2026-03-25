@@ -6,7 +6,7 @@
     <div class="space-y-6">
         <x-district-admin.municipality.municipalities-table
             :municipalities="$municipalities"
-            :districts="$districts"
+            :district-name="$districtName"
             :page="$page"
             :per-page="$perPage"
         />

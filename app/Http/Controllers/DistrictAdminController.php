@@ -59,36 +59,64 @@ class DistrictAdminController extends Controller
 {
     $menuGroups = DistrictAdminMenuHelper::getMenuGroups();
 
+    $activeDesignation = session('active_designation', []);
+    $districtId = $activeDesignation['district_id'] ?? null;
+    $districtName = $activeDesignation['district_name'] ?? null;
+
+    if (! $districtId) {
+        return redirect()
+            ->route('district-admin.district-admin-dashboard')
+            ->with('error', 'No district assigned to your account.');
+    }
+
+    if (! $districtName) {
+        $districtResponse = Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ])->get(
+            env('SUPABASE_URL') . '/rest/v1/districts',
+            [
+                'district_id' => 'eq.' . $districtId,
+                'select' => 'district_id,district_name',
+            ]
+        );
+
+        if ($districtResponse->successful()) {
+            $district = $districtResponse->json()[0] ?? null;
+            $districtName = $district['district_name'] ?? 'Your Assigned District';
+        } else {
+            $districtName = 'Your Assigned District';
+        }
+    }
+
     $municipalitiesResponse = Http::withHeaders([
         'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
         'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
         'Accept' => 'application/json',
     ])->get(
-        env('SUPABASE_URL') . '/rest/v1/municipalities?select=municipality_id,municipal_name,district_id,logo,districts(district_name)&order=municipal_name.asc'
+        env('SUPABASE_URL') . '/rest/v1/municipalities',
+        [
+            'select' => 'municipality_id,municipal_name,district_id,logo,districts(district_name)',
+            'district_id' => 'eq.' . $districtId,
+            'order' => 'municipal_name.asc',
+        ]
     );
 
     $municipalities = $municipalitiesResponse->successful()
-        ? $municipalitiesResponse->json()
-        : [];
+            ? $municipalitiesResponse->json()
+            : [];
 
-    $districts = Http::withHeaders([
-        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-        'Accept' => 'application/json',
-    ])->get(
-        env('SUPABASE_URL') . '/rest/v1/districts?select=district_id,district_name&order=district_name.asc'
-    )->json();
-
-    return view('pages.district-admin.district-admin-municipality', [
-        'title' => 'Municipality Management',
-        'menuGroups' => $menuGroups,
-        'municipalities' => $municipalities,
-        'districts' => $districts,
-        'page' => 1,
-        'perPage' => 5,
-    ]);
-}
-
+        return view('pages.district-admin.district-admin-municipality', [
+            'title' => 'Municipality Management',
+            'menuGroups' => $menuGroups,
+            'municipalities' => $municipalities,
+            'districtName' => $districtName,
+            'page' => 1,
+            'perPage' => 5,
+        ]);
+    }
+    
     public function schools()
     {
         $menuGroups = DistrictAdminMenuHelper::getMenuGroups();

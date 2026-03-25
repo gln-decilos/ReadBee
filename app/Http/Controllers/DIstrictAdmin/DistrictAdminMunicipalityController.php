@@ -10,9 +10,17 @@ class DistrictAdminMunicipalityController extends Controller
 {
     public function store(Request $request)
 {
+    $activeDesignation = session('active_designation');
+    $districtId = $activeDesignation['district_id'] ?? null;
+
+    if (! $districtId) {
+        return response()->json([
+            'message' => 'No district assigned to your account.'
+        ], 403);
+    }
+
     $request->validate([
         'municipal_name' => 'required|string|max:255',
-        'district_id' => 'required|integer',
         'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
     ]);
 
@@ -24,11 +32,11 @@ class DistrictAdminMunicipalityController extends Controller
         'Accept' => 'application/json',
     ])->get(env('SUPABASE_URL') . '/rest/v1/municipalities', [
         'municipal_name' => 'eq.' . $municipalName,
-        'district_id' => 'eq.' . $request->district_id,
+        'district_id' => 'eq.' . $districtId,
         'select' => 'municipality_id'
     ]);
 
-    if (!$checkResponse->successful()) {
+    if (! $checkResponse->successful()) {
         return response()->json([
             'message' => 'Failed to validate municipality uniqueness.',
             'error' => $checkResponse->body()
@@ -39,9 +47,9 @@ class DistrictAdminMunicipalityController extends Controller
 
     if (!empty($existing)) {
         return response()->json([
-            'message' => 'This municipality already exists in the selected district.',
+            'message' => 'This municipality already exists in your district.',
             'errors' => [
-                'municipal_name' => ['This municipality already exists in the selected district.']
+                'municipal_name' => ['This municipality already exists in your district.']
             ]
         ], 422);
     }
@@ -62,11 +70,11 @@ class DistrictAdminMunicipalityController extends Controller
         'Prefer' => 'return=representation'
     ])->post(env('SUPABASE_URL') . '/rest/v1/municipalities', [
         'municipal_name' => $municipalName,
-        'district_id' => $request->district_id,
+        'district_id' => $districtId,
         'logo' => $logoBase64,
     ]);
 
-    if (!$response->successful()) {
+    if (! $response->successful()) {
         return response()->json([
             'message' => 'Failed to create municipality.',
             'error' => $response->body()
@@ -83,6 +91,16 @@ class DistrictAdminMunicipalityController extends Controller
 
    public function destroy(Request $request)
 {
+    $activeDesignation = session('active_designation');
+    $districtId = $activeDesignation['district_id'] ?? null;
+
+    if (! $districtId) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No district assigned to your account.'
+        ], 403);
+    }
+
     $request->validate([
         'ids' => 'required|array'
     ]);
@@ -90,6 +108,23 @@ class DistrictAdminMunicipalityController extends Controller
     $ids = $request->ids;
 
     foreach ($ids as $id) {
+        $municipalityCheck = Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ])->get(env('SUPABASE_URL') . '/rest/v1/municipalities', [
+            'municipality_id' => 'eq.' . $id,
+            'district_id' => 'eq.' . $districtId,
+            'select' => 'municipality_id'
+        ]);
+
+        if (empty($municipalityCheck->json())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'One or more municipalities do not belong to your district.'
+            ], 403);
+        }
+
         $schoolsResponse = Http::withHeaders([
             'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
             'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
@@ -99,13 +134,6 @@ class DistrictAdminMunicipalityController extends Controller
             'select' => 'school_id'
         ]);
 
-        if (!$schoolsResponse->successful()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to validate municipality before delete.'
-            ], 500);
-        }
-
         if (!empty($schoolsResponse->json())) {
             return response()->json([
                 'success' => false,
@@ -114,31 +142,15 @@ class DistrictAdminMunicipalityController extends Controller
         }
     }
 
-    $failedDeletes = [];
-
     foreach ($ids as $id) {
-        $response = Http::withHeaders([
+        Http::withHeaders([
             'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
             'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
             'Prefer' => 'return=minimal',
             'Accept' => 'application/json',
-        ])->delete(env('SUPABASE_URL') . "/rest/v1/municipalities?municipality_id=eq.{$id}");
-
-        if (!$response->successful()) {
-            $failedDeletes[] = [
-                'id' => $id,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ];
-        }
-    }
-
-    if (!empty($failedDeletes)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Some municipalities could not be deleted.',
-            'errors' => $failedDeletes
-        ], 500);
+        ])->delete(
+            env('SUPABASE_URL') . "/rest/v1/municipalities?municipality_id=eq.{$id}&district_id=eq.{$districtId}"
+        );
     }
 
     return response()->json([
@@ -149,9 +161,17 @@ class DistrictAdminMunicipalityController extends Controller
 }
     public function update(Request $request, $id)
 {
+    $activeDesignation = session('active_designation');
+    $districtId = $activeDesignation['district_id'] ?? null;
+
+    if (! $districtId) {
+        return response()->json([
+            'message' => 'No district assigned to your account.'
+        ], 403);
+    }
+
     $request->validate([
         'municipal_name' => 'required|string|max:255',
-        'district_id' => 'required|integer',
         'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
     ]);
 
@@ -161,10 +181,18 @@ class DistrictAdminMunicipalityController extends Controller
         'Accept' => 'application/json',
     ])->get(env('SUPABASE_URL') . '/rest/v1/municipalities', [
         'municipality_id' => 'eq.' . $id,
-        'select' => 'logo'
+        'district_id' => 'eq.' . $districtId,
+        'select' => 'municipality_id,logo'
     ]);
 
     $existingMunicipality = $existingResponse->json()[0] ?? null;
+
+    if (! $existingMunicipality) {
+        return response()->json([
+            'message' => 'Municipality not found in your district.'
+        ], 404);
+    }
+
     $logoBase64 = $existingMunicipality['logo'] ?? null;
 
     if ($request->hasFile('logo')) {
@@ -179,13 +207,13 @@ class DistrictAdminMunicipalityController extends Controller
         'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
         'Content-Type' => 'application/json',
         'Prefer' => 'return=representation'
-    ])->patch(env('SUPABASE_URL') . "/rest/v1/municipalities?municipality_id=eq.{$id}", [
+    ])->patch(env('SUPABASE_URL') . "/rest/v1/municipalities?municipality_id=eq.{$id}&district_id=eq.{$districtId}", [
         'municipal_name' => $request->municipal_name,
-        'district_id' => $request->district_id,
+        'district_id' => $districtId,
         'logo' => $logoBase64,
     ]);
 
-    if (!$response->successful()) {
+    if (! $response->successful()) {
         return response()->json([
             'message' => 'Failed to update municipality.',
             'errors' => $response->json()
@@ -195,7 +223,7 @@ class DistrictAdminMunicipalityController extends Controller
     $updatedMunicipality = $response->json()[0] ?? [
         'municipality_id' => $id,
         'municipal_name' => $request->municipal_name,
-        'district_id' => $request->district_id,
+        'district_id' => $districtId,
         'logo' => $logoBase64,
     ];
 

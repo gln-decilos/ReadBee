@@ -10,6 +10,8 @@ use App\Http\Controllers\DistrictAdmin\DistrictAdminSchoolController;
 use App\Http\Controllers\DistrictAdmin\DistrictAdminSchoolYearController;
 use App\Http\Controllers\Auth\SignInController;
 use App\Http\Controllers\SchoolAdminController;
+use App\Http\Controllers\SchoolAdmin\SchoolAdminUserController;
+use App\Http\Controllers\SchoolAdmin\SchoolAdminUserImportController;
 
 
 // dashboard pages
@@ -233,3 +235,58 @@ Route::prefix('school-admin')->group(function () {
       Route::get('profile', [SchoolAdminController::class, 'profile'])
           ->name('school-admin.profile');
   });
+
+
+Route::prefix('school-admin')->group(function () {
+    Route::get('dashboard', [SchoolAdminController::class, 'dashboard'])
+        ->name('school-admin.dashboard');
+
+    Route::get('profile', [SchoolAdminController::class, 'profile'])
+        ->name('school-admin.profile');
+
+    Route::get('users', [SchoolAdminController::class, 'users'])
+        ->name('school-admin.users.index');
+
+    Route::post('users', [SchoolAdminUserController::class, 'store'])
+        ->name('school-admin.users.store');
+
+    Route::delete('users/delete', [SchoolAdminUserController::class, 'destroy'])
+        ->name('school-admin.users.destroy');
+
+    Route::get('roles', [SchoolAdminUserController::class, 'roles'])
+        ->name('school-admin.roles.index');
+
+    Route::get('dashboard', [SchoolAdminController::class, 'dashboard'])
+        ->name('school-admin.dashboard');
+
+    Route::get('profile', [SchoolAdminController::class, 'profile'])
+        ->name('school-admin.profile');
+
+    Route::get('users', [SchoolAdminController::class, 'users'])
+        ->name('school-admin.users.index');
+
+    Route::post('users', [SchoolAdminUserController::class, 'store'])
+        ->name('school-admin.users.store');
+
+    Route::delete('users/delete', [SchoolAdminUserController::class, 'destroy'])
+        ->name('school-admin.users.destroy');
+
+    Route::get('roles', [SchoolAdminUserController::class, 'roles'])
+        ->name('school-admin.roles.index');
+
+    Route::get('users/import', [SchoolAdminUserImportController::class, 'index'])
+        ->name('school-admin.users.import.index');
+
+    Route::get('users/import/template', [SchoolAdminUserImportController::class, 'downloadTemplate'])
+        ->name('school-admin.users.import.template');
+
+    Route::post('users/import/preview', [SchoolAdminUserImportController::class, 'preview'])
+        ->name('school-admin.users.import.preview');
+
+    Route::post('users/import/validate', [SchoolAdminUserImportController::class, 'validateRows'])
+        ->name('school-admin.users.import.validate');
+
+    Route::post('users/import/commit', [SchoolAdminUserImportController::class, 'commit'])
+        ->name('school-admin.users.import.commit');
+
+});

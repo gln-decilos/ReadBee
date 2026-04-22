@@ -14,8 +14,8 @@ class SchoolAdminMenuHelper
             ],
             [
                 'icon' => 'calendar',
-                'name' => 'School Years',
-                'path' => '/school-admin/school-year',
+                'name' => 'Classes',
+                'path' => '/school-admin/classes',
             ],
             [
                 'icon' => 'users',
@@ -24,7 +24,7 @@ class SchoolAdminMenuHelper
             ],
         ];
     }
-
+    
     public static function getOthersItems()
     {
         return [

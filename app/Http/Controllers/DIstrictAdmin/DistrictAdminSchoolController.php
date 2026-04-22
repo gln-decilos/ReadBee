@@ -10,9 +10,17 @@ class DistrictAdminSchoolController extends Controller
 {
     public function store(Request $request)
     {
+        $activeDesignation = session('active_designation', []);
+        $districtId = $activeDesignation['district_id'] ?? null;
+
+        if (! $districtId) {
+            return response()->json([
+                'message' => 'No district assigned to your account.'
+            ], 403);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
-            'district_id' => 'required|integer',
             'municipality_id' => 'required|integer',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'address' => 'nullable|string|max:255',
@@ -28,11 +36,11 @@ class DistrictAdminSchoolController extends Controller
             'Accept' => 'application/json',
         ])->get(env('SUPABASE_URL') . '/rest/v1/municipalities', [
             'municipality_id' => 'eq.' . $request->municipality_id,
-            'district_id' => 'eq.' . $request->district_id,
+            'district_id' => 'eq.' . $districtId,
             'select' => 'municipality_id'
         ]);
 
-        if (!$municipalityCheck->successful()) {
+        if (! $municipalityCheck->successful()) {
             return response()->json([
                 'message' => 'Failed to validate municipality.'
             ], 500);
@@ -40,9 +48,9 @@ class DistrictAdminSchoolController extends Controller
 
         if (empty($municipalityCheck->json())) {
             return response()->json([
-                'message' => 'Selected municipality does not belong to the selected district.',
+                'message' => 'Selected municipality does not belong to your assigned district.',
                 'errors' => [
-                    'municipality_id' => ['Selected municipality does not belong to the selected district.']
+                    'municipality_id' => ['Selected municipality does not belong to your assigned district.']
                 ]
             ], 422);
         }
@@ -54,17 +62,18 @@ class DistrictAdminSchoolController extends Controller
         ])->get(env('SUPABASE_URL') . '/rest/v1/schools', [
             'name' => 'eq.' . $schoolName,
             'municipality_id' => 'eq.' . $request->municipality_id,
+            'district_id' => 'eq.' . $districtId,
             'select' => 'school_id'
         ]);
 
-        if (!$duplicateCheck->successful()) {
+        if (! $duplicateCheck->successful()) {
             return response()->json([
                 'message' => 'Failed to validate school uniqueness.',
                 'error' => $duplicateCheck->body()
             ], 500);
         }
 
-        if (!empty($duplicateCheck->json())) {
+        if (! empty($duplicateCheck->json())) {
             return response()->json([
                 'message' => 'This school already exists in the selected municipality.',
                 'errors' => [
@@ -89,7 +98,7 @@ class DistrictAdminSchoolController extends Controller
             'Prefer' => 'return=representation'
         ])->post(env('SUPABASE_URL') . '/rest/v1/schools', [
             'name' => $schoolName,
-            'district_id' => $request->district_id,
+            'district_id' => $districtId,
             'municipality_id' => $request->municipality_id,
             'logo' => $logoBase64,
             'address' => $request->address,
@@ -97,7 +106,7 @@ class DistrictAdminSchoolController extends Controller
             'email' => $request->email,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return response()->json([
                 'message' => 'Failed to create school.',
                 'error' => $response->body()
@@ -114,9 +123,17 @@ class DistrictAdminSchoolController extends Controller
 
     public function update(Request $request, $id)
     {
+        $activeDesignation = session('active_designation', []);
+        $districtId = $activeDesignation['district_id'] ?? null;
+
+        if (! $districtId) {
+            return response()->json([
+                'message' => 'No district assigned to your account.'
+            ], 403);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
-            'district_id' => 'required|integer',
             'municipality_id' => 'required|integer',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'address' => 'nullable|string|max:255',
@@ -126,17 +143,41 @@ class DistrictAdminSchoolController extends Controller
 
         $schoolName = trim($request->name);
 
+        $schoolCheck = Http::withHeaders([
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ])->get(env('SUPABASE_URL') . '/rest/v1/schools', [
+            'school_id' => 'eq.' . $id,
+            'district_id' => 'eq.' . $districtId,
+            'select' => 'school_id,logo'
+        ]);
+
+        if (! $schoolCheck->successful()) {
+            return response()->json([
+                'message' => 'Failed to validate school.'
+            ], 500);
+        }
+
+        $existingSchool = $schoolCheck->json()[0] ?? null;
+
+        if (! $existingSchool) {
+            return response()->json([
+                'message' => 'School not found or not allowed in your district.'
+            ], 404);
+        }
+
         $municipalityCheck = Http::withHeaders([
             'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
             'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
             'Accept' => 'application/json',
         ])->get(env('SUPABASE_URL') . '/rest/v1/municipalities', [
             'municipality_id' => 'eq.' . $request->municipality_id,
-            'district_id' => 'eq.' . $request->district_id,
+            'district_id' => 'eq.' . $districtId,
             'select' => 'municipality_id'
         ]);
 
-        if (!$municipalityCheck->successful()) {
+        if (! $municipalityCheck->successful()) {
             return response()->json([
                 'message' => 'Failed to validate municipality.'
             ], 500);
@@ -144,9 +185,9 @@ class DistrictAdminSchoolController extends Controller
 
         if (empty($municipalityCheck->json())) {
             return response()->json([
-                'message' => 'Selected municipality does not belong to the selected district.',
+                'message' => 'Selected municipality does not belong to your assigned district.',
                 'errors' => [
-                    'municipality_id' => ['Selected municipality does not belong to the selected district.']
+                    'municipality_id' => ['Selected municipality does not belong to your assigned district.']
                 ]
             ], 422);
         }
@@ -158,10 +199,11 @@ class DistrictAdminSchoolController extends Controller
         ])->get(env('SUPABASE_URL') . '/rest/v1/schools', [
             'name' => 'eq.' . $schoolName,
             'municipality_id' => 'eq.' . $request->municipality_id,
+            'district_id' => 'eq.' . $districtId,
             'select' => 'school_id'
         ]);
 
-        if (!$duplicateCheck->successful()) {
+        if (! $duplicateCheck->successful()) {
             return response()->json([
                 'message' => 'Failed to validate school uniqueness.'
             ], 500);
@@ -179,16 +221,6 @@ class DistrictAdminSchoolController extends Controller
             ], 422);
         }
 
-        $existingResponse = Http::withHeaders([
-            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Accept' => 'application/json',
-        ])->get(env('SUPABASE_URL') . '/rest/v1/schools', [
-            'school_id' => 'eq.' . $id,
-            'select' => 'logo'
-        ]);
-
-        $existingSchool = $existingResponse->json()[0] ?? null;
         $logoBase64 = $existingSchool['logo'] ?? null;
 
         if ($request->hasFile('logo')) {
@@ -203,9 +235,9 @@ class DistrictAdminSchoolController extends Controller
             'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
             'Content-Type' => 'application/json',
             'Prefer' => 'return=representation'
-        ])->patch(env('SUPABASE_URL') . "/rest/v1/schools?school_id=eq.{$id}", [
+        ])->patch(env('SUPABASE_URL') . "/rest/v1/schools?school_id=eq.{$id}&district_id=eq.{$districtId}", [
             'name' => $schoolName,
-            'district_id' => $request->district_id,
+            'district_id' => $districtId,
             'municipality_id' => $request->municipality_id,
             'logo' => $logoBase64,
             'address' => $request->address,
@@ -213,7 +245,7 @@ class DistrictAdminSchoolController extends Controller
             'email' => $request->email,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return response()->json([
                 'message' => 'Failed to update school.',
                 'errors' => $response->json()
@@ -223,7 +255,7 @@ class DistrictAdminSchoolController extends Controller
         $updatedSchool = $response->json()[0] ?? [
             'school_id' => $id,
             'name' => $schoolName,
-            'district_id' => $request->district_id,
+            'district_id' => $districtId,
             'municipality_id' => $request->municipality_id,
             'logo' => $logoBase64,
             'address' => $request->address,
@@ -239,6 +271,16 @@ class DistrictAdminSchoolController extends Controller
 
     public function destroy(Request $request)
     {
+        $activeDesignation = session('active_designation', []);
+        $districtId = $activeDesignation['district_id'] ?? null;
+
+        if (! $districtId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No district assigned to your account.'
+            ], 403);
+        }
+
         $request->validate([
             'ids' => 'required|array'
         ]);
@@ -252,9 +294,11 @@ class DistrictAdminSchoolController extends Controller
                 'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
                 'Prefer' => 'return=minimal',
                 'Accept' => 'application/json',
-            ])->delete(env('SUPABASE_URL') . "/rest/v1/schools?school_id=eq.{$id}");
+            ])->delete(
+                env('SUPABASE_URL') . "/rest/v1/schools?school_id=eq.{$id}&district_id=eq.{$districtId}"
+            );
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $failedDeletes[] = [
                     'id' => $id,
                     'status' => $response->status(),
@@ -263,7 +307,7 @@ class DistrictAdminSchoolController extends Controller
             }
         }
 
-        if (!empty($failedDeletes)) {
+        if (! empty($failedDeletes)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Some schools could not be deleted.',

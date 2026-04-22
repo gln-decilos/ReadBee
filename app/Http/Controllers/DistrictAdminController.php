@@ -116,49 +116,86 @@ class DistrictAdminController extends Controller
             'perPage' => 5,
         ]);
     }
-    
-    public function schools()
-    {
-        $menuGroups = DistrictAdminMenuHelper::getMenuGroups();
 
-        $schoolsResponse = Http::withHeaders([
+    public function schools()
+{
+    $menuGroups = DistrictAdminMenuHelper::getMenuGroups();
+
+    $activeDesignation = session('active_designation', []);
+    $districtId = $activeDesignation['district_id'] ?? null;
+    $districtName = $activeDesignation['district_name'] ?? null;
+
+    if (! $districtId) {
+        return redirect()
+            ->route('district-admin.district-admin-dashboard')
+            ->with('error', 'No district assigned to your account.');
+    }
+
+    if (! $districtName) {
+        $districtResponse = Http::withHeaders([
             'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
             'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
             'Accept' => 'application/json',
         ])->get(
-            env('SUPABASE_URL') . '/rest/v1/schools?select=school_id,name,logo,address,contact,email,district_id,municipality_id,districts(district_name),municipalities(municipal_name)&order=name.asc'
+            env('SUPABASE_URL') . '/rest/v1/districts',
+            [
+                'district_id' => 'eq.' . $districtId,
+                'select' => 'district_id,district_name',
+            ]
         );
 
-        $schools = $schoolsResponse->successful()
-            ? $schoolsResponse->json()
-            : [];
-
-        $districts = Http::withHeaders([
-            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Accept' => 'application/json',
-        ])->get(
-            env('SUPABASE_URL') . '/rest/v1/districts?select=district_id,district_name&order=district_name.asc'
-        )->json();
-
-        $municipalities = Http::withHeaders([
-            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Accept' => 'application/json',
-        ])->get(
-            env('SUPABASE_URL') . '/rest/v1/municipalities?select=municipality_id,municipal_name,district_id&order=municipal_name.asc'
-        )->json();
-
-        return view('pages.district-admin.district-admin-schools', [
-            'title' => 'School Management',
-            'menuGroups' => $menuGroups,
-            'schools' => $schools,
-            'districts' => $districts,
-            'municipalities' => $municipalities,
-            'page' => 1,
-            'perPage' => 5,
-        ]);
+        if ($districtResponse->successful()) {
+            $district = $districtResponse->json()[0] ?? null;
+            $districtName = $district['district_name'] ?? 'Your Assigned District';
+        } else {
+            $districtName = 'Your Assigned District';
+        }
     }
+
+    $schoolsResponse = Http::withHeaders([
+        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+        'Accept' => 'application/json',
+    ])->get(
+        env('SUPABASE_URL') . '/rest/v1/schools',
+        [
+            'select' => 'school_id,name,logo,address,contact,email,district_id,municipality_id,districts(district_name),municipalities(municipal_name)',
+            'district_id' => 'eq.' . $districtId,
+            'order' => 'name.asc'
+        ]
+    );
+
+    $schools = $schoolsResponse->successful()
+        ? $schoolsResponse->json()
+        : [];
+
+    $municipalitiesResponse = Http::withHeaders([
+        'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+        'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+        'Accept' => 'application/json',
+    ])->get(
+        env('SUPABASE_URL') . '/rest/v1/municipalities',
+        [
+            'select' => 'municipality_id,municipal_name,district_id',
+            'district_id' => 'eq.' . $districtId,
+            'order' => 'municipal_name.asc'
+        ]
+    );
+
+    $municipalities = $municipalitiesResponse->successful()
+        ? $municipalitiesResponse->json()
+        : [];
+
+    return view('pages.district-admin.district-admin-schools', [
+        'title' => 'School Management',
+        'menuGroups' => $menuGroups,
+        'schools' => $schools,
+        'municipalities' => $municipalities,
+        'districtName' => $districtName,
+        'page' => 1,
+        'perPage' => 5,
+    ]);
+}
 
     public function schoolYears()
     {

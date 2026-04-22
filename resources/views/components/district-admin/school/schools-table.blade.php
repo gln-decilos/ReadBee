@@ -1,21 +1,18 @@
 @props([
     'schools' => [],
-    'districts' => [],
     'municipalities' => [],
+    'districtName' => 'Your Assigned District',
     'page' => 1,
     'perPage' => 5,
 ])
 
 @php
-    $districtOptions = $districts;
     $municipalityOptions = $municipalities;
 @endphp
 
 <div x-data='{
     allSchools: @json($schools),
-    districts: @json($districtOptions),
     municipalities: @json($municipalityOptions),
-    filteredMunicipalities: @json($municipalityOptions),
 
     page: {{ (int) $page }},
     perPage: {{ (int) $perPage }},
@@ -41,7 +38,6 @@
     editSchool: {
         school_id: "",
         name: "",
-        district_id: "",
         municipality_id: "",
         logo: "",
         address: "",
@@ -110,20 +106,6 @@
         this.selectAll =
             this.paginatedSchools.length > 0 &&
             this.selectedRows.length === this.paginatedSchools.length;
-    },
-
-    filterMunicipalitiesByDistrict(districtId, mode = "create") {
-        this.filteredMunicipalities = this.municipalities.filter(
-            m => String(m.district_id) === String(districtId)
-        );
-
-        if (mode === "create") {
-            if (this.$refs.createMunicipalitySelect) {
-                this.$refs.createMunicipalitySelect.value = "";
-            }
-        } else {
-            this.editSchool.municipality_id = "";
-        }
     },
 
     deleteRow(id) {
@@ -209,19 +191,15 @@
                 return;
             }
 
-            const selectedDistrict = this.districts.find(
-                d => String(d.district_id) === String(data.school.district_id)
-            );
-
             const selectedMunicipality = this.municipalities.find(
                 m => String(m.municipality_id) === String(data.school.municipality_id)
             );
 
             const newSchool = {
                 ...data.school,
-                districts: selectedDistrict
-                    ? { district_name: selectedDistrict.district_name }
-                    : { district_name: "-" },
+                districts: {
+                    district_name: "{{ $districtName }}"
+                },
                 municipalities: selectedMunicipality
                     ? { municipal_name: selectedMunicipality.municipal_name }
                     : { municipal_name: "-" }
@@ -236,7 +214,6 @@
             this.$refs.createForm.reset();
             this.selectedRows = [];
             this.selectAll = false;
-            this.filteredMunicipalities = this.municipalities;
         } catch (error) {
             console.error("Create error:", error);
             alert("An error occurred while creating school.");
@@ -248,17 +225,12 @@
         this.editSchool = {
             school_id: school.school_id,
             name: school.name || "",
-            district_id: school.district_id || "",
             municipality_id: school.municipality_id || "",
             logo: school.logo || "",
             address: school.address || "",
             contact: school.contact || "",
             email: school.email || ""
         };
-
-        this.filteredMunicipalities = this.municipalities.filter(
-            m => String(m.district_id) === String(school.district_id)
-        );
 
         this.showEditForm = true;
         this.showAddForm = false;
@@ -288,10 +260,6 @@
                 return;
             }
 
-            const selectedDistrict = this.districts.find(
-                d => String(d.district_id) === String(data.school.district_id)
-            );
-
             const selectedMunicipality = this.municipalities.find(
                 m => String(m.municipality_id) === String(data.school.municipality_id)
             );
@@ -304,9 +272,9 @@
                 this.allSchools[index] = {
                     ...this.allSchools[index],
                     ...data.school,
-                    districts: selectedDistrict
-                        ? { district_name: selectedDistrict.district_name }
-                        : { district_name: "-" },
+                    districts: {
+                        district_name: "{{ $districtName }}"
+                    },
                     municipalities: selectedMunicipality
                         ? { municipal_name: selectedMunicipality.municipal_name }
                         : { municipal_name: "-" }
@@ -329,6 +297,12 @@
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
                     Schools
                 </h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    These are the schools under
+                    <span class="font-semibold text-brand-600 dark:text-brand-400">
+                        {{ $districtName }}
+                    </span>
+                </p>
             </div>
 
             <div class="flex items-center gap-3">
@@ -382,38 +356,15 @@
 
                     <div>
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            District
-                        </label>
-                        <select
-                            name="district_id"
-                            required
-                            @change="filterMunicipalitiesByDistrict($event.target.value, 'create')"
-                            class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                        >
-                            <option value="">Select District</option>
-                            @foreach($districts as $district)
-                                <option value="{{ $district['district_id'] }}">
-                                    {{ $district['district_name'] }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <template x-if="formErrors.district_id">
-                            <p class="mt-1 text-sm text-red-600" x-text="formErrors.district_id[0]"></p>
-                        </template>
-                    </div>
-
-                    <div>
-                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             Municipality
                         </label>
                         <select
-                            x-ref="createMunicipalitySelect"
                             name="municipality_id"
                             required
                             class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                         >
                             <option value="">Select Municipality</option>
-                            <template x-for="municipality in filteredMunicipalities" :key="municipality.municipality_id">
+                            <template x-for="municipality in municipalities" :key="municipality.municipality_id">
                                 <option :value="municipality.municipality_id" x-text="municipality.municipal_name"></option>
                             </template>
                         </select>
@@ -513,29 +464,6 @@
 
                     <div>
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            District
-                        </label>
-                        <select
-                            name="district_id"
-                            x-model="editSchool.district_id"
-                            required
-                            @change="filterMunicipalitiesByDistrict(editSchool.district_id, 'edit')"
-                            class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                        >
-                            <option value="">Select District</option>
-                            @foreach($districts as $district)
-                                <option value="{{ $district['district_id'] }}">
-                                    {{ $district['district_name'] }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <template x-if="editFormErrors.district_id">
-                            <p class="mt-1 text-sm text-red-600" x-text="editFormErrors.district_id[0]"></p>
-                        </template>
-                    </div>
-
-                    <div>
-                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             Municipality
                         </label>
                         <select
@@ -545,7 +473,7 @@
                             class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                         >
                             <option value="">Select Municipality</option>
-                            <template x-for="municipality in filteredMunicipalities" :key="municipality.municipality_id">
+                            <template x-for="municipality in municipalities" :key="municipality.municipality_id">
                                 <option :value="municipality.municipality_id" x-text="municipality.municipal_name"></option>
                             </template>
                         </select>
@@ -709,7 +637,7 @@
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-400" x-text="school.districts?.district_name || '-'"></td>
+                            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-400" x-text="school.districts?.district_name || '{{ $districtName }}'"></td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-400" x-text="school.municipalities?.municipal_name || '-'"></td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-400" x-text="school.contact || '-'"></td>
                             <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-400" x-text="school.email || '-'"></td>
@@ -764,7 +692,7 @@
                                       </h4>
 
                                       <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                                          There are no school records to display right now. Add a school to start building your school list.
+                                          There are no school records in {{ $districtName }} right now. Add a school to start building your school list.
                                       </p>
                                   </div>
 
@@ -774,7 +702,7 @@
                                           <path d="M6 11.5V16.5C6 16.5 8.5 19 12 19C15.5 19 18 16.5 18 16.5V11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                           <path d="M21 9V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                       </svg>
-                                      Add your first school to get started
+                                      Add your first school in {{ $districtName }}
                                   </div>
                               </div>
                           </td>

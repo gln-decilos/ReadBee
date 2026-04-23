@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\SignInController;
 use App\Http\Controllers\SchoolAdminController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminUserController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminUserImportController;
+use App\Http\Controllers\SchoolAdmin\SchoolAdminClassController;
 
 
 // dashboard pages
@@ -262,6 +263,8 @@ Route::prefix('school-admin')->group(function () {
     Route::get('profile', [SchoolAdminController::class, 'profile'])
         ->name('school-admin.profile');
 
+
+    //User management routes
     Route::get('users', [SchoolAdminController::class, 'users'])
         ->name('school-admin.users.index');
 
@@ -288,5 +291,22 @@ Route::prefix('school-admin')->group(function () {
 
     Route::post('users/import/commit', [SchoolAdminUserImportController::class, 'commit'])
         ->name('school-admin.users.import.commit');
+
+    //Class management routes
+    Route::get('classes', [SchoolAdminClassController::class, 'index'])
+    ->name('school-admin.classes.index');
+
+    Route::post('classes', [SchoolAdminClassController::class, 'store'])
+        ->name('school-admin.classes.store');
+
+    Route::patch('classes/{sectionId}/archive', [SchoolAdminClassController::class, 'archive'])
+        ->name('school-admin.classes.archive');
+
+    Route::post('classes/{sectionId}/adviser', [SchoolAdminClassController::class, 'assignAdviser'])
+        ->name('school-admin.classes.assign-adviser');
+
+    Route::delete('classes/{sectionId}', [SchoolAdminClassController::class, 'destroy'])
+        ->name('school-admin.classes.destroy');
+        
 
 });

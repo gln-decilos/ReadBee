@@ -13,7 +13,7 @@ use App\Http\Controllers\SchoolAdminController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminUserController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminUserImportController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminClassController;
-
+use App\Http\Controllers\PrincipalController;
 
 // dashboard pages
 Route::get('/', function () {
@@ -307,6 +307,21 @@ Route::prefix('school-admin')->group(function () {
 
     Route::delete('classes/{sectionId}', [SchoolAdminClassController::class, 'destroy'])
         ->name('school-admin.classes.destroy');
-        
 
+
+});
+
+
+Route::prefix('principal')->group(function () {
+    Route::get('dashboard', [PrincipalController::class, 'dashboard'])
+        ->name('principal.dashboard');
+
+    Route::get('profile', [PrincipalController::class, 'profile'])
+        ->name('principal.profile');
+
+    Route::get('reading-materials', [PrincipalController::class, 'readingMaterials'])
+        ->name('principal.reading-materials');
+
+    Route::get('pupils', [PrincipalController::class, 'pupils'])
+        ->name('principal.pupils');
 });

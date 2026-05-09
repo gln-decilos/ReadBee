@@ -15,6 +15,7 @@ use App\Http\Controllers\SchoolAdmin\SchoolAdminUserImportController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminClassController;
 use App\Http\Controllers\PrincipalController;
 use App\Http\Controllers\Principal\PrincipalReadingMaterialController;
+use App\Http\Controllers\Principal\PrincipalPupilsController;
 
 // dashboard pages
 Route::get('/', function () {
@@ -323,6 +324,7 @@ Route::prefix('principal')->group(function () {
     Route::get('reading-materials', [PrincipalController::class, 'readingMaterials'])
         ->name('principal.reading-materials');
 
+    //Reading Materials Management
     Route::post('reading-materials', [PrincipalReadingMaterialController::class, 'store'])
         ->name('principal.reading-materials.store');
 
@@ -334,4 +336,48 @@ Route::prefix('principal')->group(function () {
 
     Route::get('pupils', [PrincipalController::class, 'pupils'])
         ->name('principal.pupils');
+
+    //Pupils Management
+    Route::get('pupils', [PrincipalPupilsController::class, 'index'])
+    ->name('principal.pupils');
+
+    Route::post('pupils', [PrincipalPupilsController::class, 'store'])
+        ->name('principal.pupils.store');
+
+    Route::patch('pupils/{pupilId}', [PrincipalPupilsController::class, 'update'])
+        ->name('principal.pupils.update');
+
+    Route::patch('pupils/{pupilId}/drop', [PrincipalPupilsController::class, 'markDropped'])
+        ->name('principal.pupils.drop');
+
+    Route::patch('pupils/{pupilId}/restore', [PrincipalPupilsController::class, 'restore'])
+        ->name('principal.pupils.restore');
+
+    Route::patch('pupils/{pupilId}/transfer-section', [PrincipalPupilsController::class, 'transferSection'])
+        ->name('principal.pupils.transfer-section');
+
+    Route::delete('pupils/{pupilId}', [PrincipalPupilsController::class, 'delete'])
+        ->name('principal.pupils.delete');
+
+    Route::delete('pupils', [PrincipalPupilsController::class, 'bulkDelete'])
+        ->name('principal.pupils.bulk-delete');
+
+    // Optional backwards-compatible archive route if your UI still references it.
+    Route::patch('pupils/{pupilId}/archive', [PrincipalPupilsController::class, 'archive'])
+        ->name('principal.pupils.archive');
+
+    Route::get('pupils/import/template', [PrincipalPupilsController::class, 'downloadImportTemplate'])
+    ->name('principal.pupils.import.template');
+
+    Route::post('pupils/import/preview', [PrincipalPupilsController::class, 'previewImport'])
+        ->name('principal.pupils.import.preview');
+
+    Route::post('pupils/import/commit', [PrincipalPupilsController::class, 'commitImport'])
+        ->name('principal.pupils.import.commit');
+
+
+
+
 });
+
+

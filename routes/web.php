@@ -14,6 +14,7 @@ use App\Http\Controllers\SchoolAdmin\SchoolAdminUserController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminUserImportController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminClassController;
 use App\Http\Controllers\PrincipalController;
+use App\Http\Controllers\Principal\PrincipalReadingMaterialController;
 
 // dashboard pages
 Route::get('/', function () {
@@ -321,6 +322,15 @@ Route::prefix('principal')->group(function () {
 
     Route::get('reading-materials', [PrincipalController::class, 'readingMaterials'])
         ->name('principal.reading-materials');
+
+    Route::post('reading-materials', [PrincipalReadingMaterialController::class, 'store'])
+        ->name('principal.reading-materials.store');
+
+    Route::patch('reading-materials/{materialId}/approve', [PrincipalReadingMaterialController::class, 'approve'])
+        ->name('principal.reading-materials.approve');
+
+    Route::patch('reading-materials/{materialId}/archive', [PrincipalReadingMaterialController::class, 'archive'])
+        ->name('principal.reading-materials.archive');
 
     Route::get('pupils', [PrincipalController::class, 'pupils'])
         ->name('principal.pupils');

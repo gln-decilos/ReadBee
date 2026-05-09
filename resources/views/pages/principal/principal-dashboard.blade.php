@@ -1,8 +1,27 @@
 @extends('layouts.principal-layout')
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Dashboard" />
 
-    <div class="rounded-2xl border border-gray-200 bg-white px-5 py-7 dark:border-gray-800 dark:bg-white/[0.03] xl:px-10 xl:py-12">
+
+  <div class="grid grid-cols-12 gap-4 md:gap-6">
+    <div class="col-span-12 space-y-6 xl:col-span-7">
+      <x-ecommerce.ecommerce-metrics />
+      <x-ecommerce.monthly-sale />
     </div>
+    <div class="col-span-12 xl:col-span-5">
+        <x-ecommerce.monthly-target />
+    </div>
+
+    <div class="col-span-12">
+      <x-ecommerce.statistics-chart />
+    </div>
+
+    <div class="col-span-12 xl:col-span-5">
+      <x-ecommerce.customer-demographic />
+    </div>
+
+    <div class="col-span-12 xl:col-span-7">
+      <x-ecommerce.recent-orders />
+    </div>
+  </div>
 @endsection

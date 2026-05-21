@@ -16,6 +16,8 @@ use App\Http\Controllers\SchoolAdmin\SchoolAdminClassController;
 use App\Http\Controllers\PrincipalController;
 use App\Http\Controllers\Principal\PrincipalReadingMaterialController;
 use App\Http\Controllers\Principal\PrincipalPupilsController;
+use App\Http\Controllers\Principal\PrincipalAssessmentScheduleController;
+use App\Http\Controllers\Principal\PrincipalAssignEvaluatorController;
 
 // dashboard pages
 Route::get('/', function () {
@@ -296,10 +298,13 @@ Route::prefix('school-admin')->group(function () {
 
     //Class management routes
     Route::get('classes', [SchoolAdminClassController::class, 'index'])
-    ->name('school-admin.classes.index');
+        ->name('school-admin.classes.index');
 
     Route::post('classes', [SchoolAdminClassController::class, 'store'])
         ->name('school-admin.classes.store');
+
+    Route::patch('classes/{sectionId}', [SchoolAdminClassController::class, 'update'])
+        ->name('school-admin.classes.update');
 
     Route::patch('classes/{sectionId}/archive', [SchoolAdminClassController::class, 'archive'])
         ->name('school-admin.classes.archive');
@@ -309,6 +314,9 @@ Route::prefix('school-admin')->group(function () {
 
     Route::delete('classes/{sectionId}', [SchoolAdminClassController::class, 'destroy'])
         ->name('school-admin.classes.destroy');
+
+
+
 
 
 });
@@ -374,6 +382,36 @@ Route::prefix('principal')->group(function () {
 
     Route::post('pupils/import/commit', [PrincipalPupilsController::class, 'commitImport'])
         ->name('principal.pupils.import.commit');
+        //Assessment Schedule Management
+
+    Route::get('assessment-schedule', [PrincipalAssessmentScheduleController::class, 'index'])
+        ->name('principal.assessment-schedule');
+
+    Route::post('assessment-schedule', [PrincipalAssessmentScheduleController::class, 'store'])
+        ->name('principal.assessment-schedule.store');
+
+    Route::patch('assessment-schedule/{scheduleId}', [PrincipalAssessmentScheduleController::class, 'update'])
+        ->name('principal.assessment-schedule.update');
+
+    Route::delete('assessment-schedule/{scheduleId}', [PrincipalAssessmentScheduleController::class, 'destroy'])
+        ->name('principal.assessment-schedule.destroy');
+
+    //Assign Evaluator Management
+    Route::get('assign-evaluator', [PrincipalAssignEvaluatorController::class, 'index'])
+        ->name('principal.assign-evaluator');
+
+    Route::post('assign-evaluator', [PrincipalAssignEvaluatorController::class, 'store'])
+        ->name('principal.assign-evaluator.store');
+
+    Route::post('assign-evaluator/{assignmentId}/resend', [PrincipalAssignEvaluatorController::class, 'resend'])
+        ->name('principal.assign-evaluator.resend');
+
+    Route::delete('assign-evaluator/{assignmentId}', [PrincipalAssignEvaluatorController::class, 'destroy'])
+        ->name('principal.assign-evaluator.destroy');
+
+    Route::get('evaluator-assignments/{assignmentId}/confirm', [PrincipalAssignEvaluatorController::class, 'confirm'])
+        ->name('principal.assign-evaluator.confirm')
+        ->middleware('signed');
 
 
 

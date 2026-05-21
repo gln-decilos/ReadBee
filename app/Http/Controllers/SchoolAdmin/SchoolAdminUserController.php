@@ -35,7 +35,9 @@ class SchoolAdminUserController extends Controller
             'select' => 'id,email',
         ]);
 
-        $existingUser = $checkEmail->json();
+        $existingUser = $checkEmail->successful()
+            ? $checkEmail->json()
+            : [];
 
         if (! empty($existingUser)) {
             return back()->withInput()->withErrors([
@@ -53,10 +55,11 @@ class SchoolAdminUserController extends Controller
         ]);
 
         $role = $roleResponse->successful() ? ($roleResponse->json()[0] ?? null) : null;
+        $roleName = strtolower($role['name'] ?? '');
 
-        if (! $role || ! in_array(strtolower($role['name']), ['principal', 'teacher'])) {
+        if (! $role || ! in_array($roleName, ['principal', 'evaluator'], true)) {
             return back()->withInput()->withErrors([
-                'role_id' => 'Invalid role selected.',
+                'role_id' => 'Invalid role selected. Only Principal and Evaluator roles are allowed for school users.',
             ]);
         }
 
@@ -145,13 +148,21 @@ class SchoolAdminUserController extends Controller
             return back()->with('error', 'Failed to assign user role.');
         }
 
-        Mail::to($request->email)->send(
-            new UserCredentialsMail(
-                $request->full_name,
-                $request->email,
-                $generatedPassword
-            )
-        );
+        try {
+            Mail::to($request->email)->send(
+                new UserCredentialsMail(
+                    $request->full_name,
+                    $request->email,
+                    $generatedPassword
+                )
+            );
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('school-admin.users.index')
+                ->with('success', 'User created successfully, but credentials email could not be sent. Check mail configuration.');
+        }
 
         return redirect()
             ->route('school-admin.users.index')
@@ -192,7 +203,7 @@ class SchoolAdminUserController extends Controller
             env('SUPABASE_URL') . '/rest/v1/roles',
             [
                 'select' => 'id,name,description',
-                'name' => 'in.(Principal,Teacher)',
+                'name' => 'in.(Principal,Evaluator)',
                 'order' => 'name.asc',
             ]
         )->json();

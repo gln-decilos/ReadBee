@@ -2,7 +2,6 @@
     'schoolYears' => [],
     'selectedYearId' => null,
     'grades' => [],
-    'teachers' => [],
 ])
 
 <div
@@ -10,7 +9,6 @@
         selectedYearId: @json($selectedYearId),
         yearPickerValue: @json($selectedYearId),
         schoolYears: @json($schoolYears),
-        teachers: @json($teachers),
         grades: @json($grades),
 
         viewingGradeId: null,
@@ -19,7 +17,16 @@
         sectionForm: {
             grade_level_id: "",
             section_name: "",
-            adviser_user_id: ""
+            adviser_name: ""
+        },
+
+        editModal: false,
+        editTarget: null,
+        editForm: {
+            section_id: "",
+            grade_level_id: "",
+            section_name: "",
+            adviser_name: ""
         },
 
         formErrors: {},
@@ -33,6 +40,7 @@
         deleteTarget: null,
 
         loadingYear: false,
+        saving: false,
 
         get selectedYearLabel() {
             const y = this.schoolYears.find(item => String(item.year_id) === String(this.selectedYearId));
@@ -43,9 +51,7 @@
         },
 
         get displayedYearLabel() {
-            if (this.loadingYear) {
-                return "Loading...";
-            }
+            if (this.loadingYear) return "Loading...";
 
             const y = this.schoolYears.find(item => String(item.year_id) === String(this.yearPickerValue));
             if (!y) return "Select School Year";
@@ -96,10 +102,10 @@
                 this.yearPickerValue = data.selectedYearId;
                 this.schoolYears = Array.isArray(data.schoolYears) ? data.schoolYears : this.schoolYears;
                 this.grades = Array.isArray(data.grades) ? data.grades : [];
-                this.teachers = Array.isArray(data.teachers) ? data.teachers : [];
 
                 this.viewingGradeId = null;
                 this.openAddFormGrade = null;
+                this.closeEditModal();
                 this.formErrors = {};
             } catch (error) {
                 console.error("Change year error:", error);
@@ -113,6 +119,7 @@
         openSections(gradeId) {
             this.viewingGradeId = gradeId;
             this.openAddFormGrade = null;
+            this.formErrors = {};
             window.scrollTo({ top: 0, behavior: "smooth" });
         },
 
@@ -120,6 +127,7 @@
             this.viewingGradeId = null;
             this.openAddFormGrade = null;
             this.formErrors = {};
+            this.closeEditModal();
         },
 
         openAddForm(gradeId) {
@@ -127,9 +135,10 @@
             this.sectionForm = {
                 grade_level_id: gradeId,
                 section_name: "",
-                adviser_user_id: ""
+                adviser_name: ""
             };
             this.formErrors = {};
+            this.closeEditModal();
         },
 
         getGradeById(gradeId) {
@@ -145,23 +154,21 @@
         },
 
         badgeClass(status) {
-            if (status === "active") {
-                return "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400";
-            }
-            if (status === "inactive") {
-                return "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400";
-            }
+            if (status === "active") return "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400";
+            if (status === "inactive") return "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400";
+            if (status === "archived") return "bg-gray-100 text-gray-700 dark:bg-gray-500/10 dark:text-gray-300";
             return "bg-gray-100 text-gray-700 dark:bg-gray-500/10 dark:text-gray-300";
         },
 
         async addSection() {
             this.formErrors = {};
+            this.saving = true;
 
             const payload = {
                 year_id: this.selectedYearId,
                 grade_level_id: this.sectionForm.grade_level_id,
                 section_name: this.sectionForm.section_name,
-                adviser_user_id: this.sectionForm.adviser_user_id || null,
+                adviser_name: this.sectionForm.adviser_name || null,
             };
 
             try {
@@ -187,13 +194,13 @@
 
                 if (grade) {
                     grade.sections.push(data.section);
-                    grade.sections.sort((a, b) => a.section_name.localeCompare(b.section_name));
+                    grade.sections.sort((a, b) => String(a.section_name || "").localeCompare(String(b.section_name || "")));
                 }
 
                 this.sectionForm = {
                     grade_level_id: this.sectionForm.grade_level_id,
                     section_name: "",
-                    adviser_user_id: ""
+                    adviser_name: ""
                 };
 
                 this.openAddFormGrade = null;
@@ -202,7 +209,95 @@
             } catch (error) {
                 console.error("Add section error:", error);
                 alert("An error occurred while creating the section.");
+            } finally {
+                this.saving = false;
             }
+        },
+
+        openEditModal(section) {
+            this.editTarget = section;
+            this.editForm = {
+                section_id: section.section_id,
+                grade_level_id: section.grade_level_id || this.selectedGrade?.grade_level_id || "",
+                section_name: section.section_name || "",
+                adviser_name: section.adviser_name || ""
+            };
+            this.formErrors = {};
+            this.openAddFormGrade = null;
+            this.editModal = true;
+        },
+
+        closeEditModal() {
+            this.editModal = false;
+            this.editTarget = null;
+            this.editForm = {
+                section_id: "",
+                grade_level_id: "",
+                section_name: "",
+                adviser_name: ""
+            };
+            this.formErrors = {};
+        },
+
+        async updateSection() {
+            if (!this.editTarget) return;
+
+            this.formErrors = {};
+            this.saving = true;
+
+            const payload = {
+                year_id: this.selectedYearId,
+                grade_level_id: this.editForm.grade_level_id,
+                section_name: this.editForm.section_name,
+                adviser_name: this.editForm.adviser_name || null,
+            };
+
+            try {
+                const response = await fetch(`/school-admin/classes/${this.editTarget.section_id}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    this.formErrors = data.errors || {};
+                    alert(data.message || "Failed to update section.");
+                    return;
+                }
+
+                this.upsertSection(data.section);
+                this.closeEditModal();
+                this.successMessage = data.message || "Section updated successfully.";
+                this.successModal = true;
+            } catch (error) {
+                console.error("Update section error:", error);
+                alert("An error occurred while updating the section.");
+            } finally {
+                this.saving = false;
+            }
+        },
+
+        upsertSection(updatedSection) {
+            if (!updatedSection) return;
+
+            this.grades = this.grades.map(grade => {
+                grade.sections = (grade.sections || []).filter(
+                    section => String(section.section_id) !== String(updatedSection.section_id)
+                );
+
+                if (String(grade.grade_level_id) === String(updatedSection.grade_level_id)) {
+                    grade.sections.push(updatedSection);
+                    grade.sections.sort((a, b) => String(a.section_name || "").localeCompare(String(b.section_name || "")));
+                }
+
+                return grade;
+            });
         },
 
         confirmArchive(section) {
@@ -234,18 +329,9 @@
                 }
 
                 this.grades = this.grades.map(grade => {
-                    grade.sections = (grade.sections || []).map(section => {
-                        if (String(section.section_id) === String(this.archiveTarget.section_id)) {
-                            return {
-                                ...section,
-                                status: "archived",
-                                adviser_user_id: null,
-                                adviser_name: null,
-                                adviser_email: null
-                            };
-                        }
-                        return section;
-                    });
+                    grade.sections = (grade.sections || []).filter(
+                        section => String(section.section_id) !== String(this.archiveTarget.section_id)
+                    );
                     return grade;
                 });
 
@@ -299,39 +385,6 @@
                 console.error("Delete section error:", error);
                 alert("An error occurred while deleting the section.");
             }
-        },
-
-        async saveAdviser(section) {
-            try {
-                const response = await fetch(`/school-admin/classes/${section.section_id}/adviser`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                        "Accept": "application/json"
-                    },
-                    body: JSON.stringify({
-                        adviser_user_id: section.adviser_user_id || null
-                    })
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    alert(data.message || "Failed to update adviser.");
-                    return;
-                }
-
-                section.adviser_user_id = data.adviser_user_id;
-                section.adviser_name = data.adviser_name;
-                section.adviser_email = data.adviser_email;
-
-                this.successMessage = data.message || "Adviser updated successfully.";
-                this.successModal = true;
-            } catch (error) {
-                console.error("Assign adviser error:", error);
-                alert("An error occurred while saving adviser.");
-            }
         }
     }'
     class="space-y-6"
@@ -346,7 +399,7 @@
                     Class Management
                 </h3>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Manage sections and adviser assignments by grade level and school year.
+                    Manage sections and adviser names by grade level and school year.
                 </p>
             </div>
 
@@ -513,26 +566,28 @@
 
                             <div>
                                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                    Adviser
+                                    Adviser Full Name
                                 </label>
-                                <select
-                                    x-model="sectionForm.adviser_user_id"
+                                <input
+                                    type="text"
+                                    x-model="sectionForm.adviser_name"
+                                    placeholder="e.g. Juan Dela Cruz"
                                     class="dark:bg-gray-900 shadow-theme-xs h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90"
-                                >
-                                    <option value="">No adviser yet</option>
-                                    <template x-for="teacher in teachers" :key="teacher.id">
-                                        <option :value="teacher.id" x-text="teacher.full_name + (teacher.email ? ' - ' + teacher.email : '')"></option>
-                                    </template>
-                                </select>
+                                />
+                                <template x-if="formErrors.adviser_name">
+                                    <p class="mt-1.5 text-sm text-red-500" x-text="formErrors.adviser_name[0]"></p>
+                                </template>
                             </div>
                         </x-common.component-card>
 
                         <div class="mt-4 flex justify-end">
                             <button
                                 type="submit"
-                                class="inline-flex items-center justify-center rounded-xl bg-yellow-100 px-4 py-2.5 text-sm font-medium text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20"
+                                :disabled="saving"
+                                class="inline-flex items-center justify-center rounded-xl bg-yellow-100 px-4 py-2.5 text-sm font-medium text-yellow-700 hover:bg-yellow-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20"
                             >
-                                Save Section
+                                <span x-show="!saving">Save Section</span>
+                                <span x-show="saving">Saving...</span>
                             </button>
                         </div>
                     </form>
@@ -585,22 +640,7 @@
                                         </td>
 
                                         <td class="px-6 py-4">
-                                            <div class="flex items-center gap-3">
-                                                <select
-                                                    x-model="section.adviser_user_id"
-                                                    @change="saveAdviser(section)"
-                                                    class="dark:bg-gray-900 shadow-theme-xs h-10 min-w-[260px] rounded-xl border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90"
-                                                >
-                                                    <option value="">No adviser</option>
-                                                    <template x-for="teacher in teachers" :key="teacher.id">
-                                                        <option :value="teacher.id" x-text="teacher.full_name"></option>
-                                                    </template>
-                                                </select>
-                                            </div>
-
-                                            <template x-if="section.adviser_email">
-                                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-text="section.adviser_email"></p>
-                                            </template>
+                                            <p class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="section.adviser_name || 'No adviser set'"></p>
                                         </td>
 
                                         <td class="px-6 py-4">
@@ -612,7 +652,15 @@
                                         </td>
 
                                         <td class="px-6 py-4">
-                                            <div class="flex items-center gap-2">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    @click="openEditModal(section)"
+                                                    class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800"
+                                                >
+                                                    Edit
+                                                </button>
+
                                                 <template x-if="section.status !== 'archived'">
                                                     <button
                                                         type="button"
@@ -626,7 +674,7 @@
                                                 <button
                                                     type="button"
                                                     @click="confirmDelete(section)"
-                                                    class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800"
+                                                    class="inline-flex items-center justify-center rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10"
                                                 >
                                                     Delete
                                                 </button>
@@ -642,7 +690,54 @@
         </template>
     </div>
 
-    <div x-show="archiveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div x-show="editModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div @click.outside="closeEditModal" class="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Edit Section</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Update the section name and adviser full name.</p>
+                </div>
+                <button type="button" @click="closeEditModal" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">x</button>
+            </div>
+
+            <form @submit.prevent="updateSection" class="mt-5 space-y-4">
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Section Name</label>
+                    <input
+                        type="text"
+                        x-model="editForm.section_name"
+                        class="dark:bg-gray-900 shadow-theme-xs h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90"
+                    />
+                    <template x-if="formErrors.section_name">
+                        <p class="mt-1.5 text-sm text-red-500" x-text="formErrors.section_name[0]"></p>
+                    </template>
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Adviser Full Name</label>
+                    <input
+                        type="text"
+                        x-model="editForm.adviser_name"
+                        placeholder="e.g. Juan Dela Cruz"
+                        class="dark:bg-gray-900 shadow-theme-xs h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90"
+                    />
+                    <template x-if="formErrors.adviser_name">
+                        <p class="mt-1.5 text-sm text-red-500" x-text="formErrors.adviser_name[0]"></p>
+                    </template>
+                </div>
+
+                <div class="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-800">
+                    <button type="button" @click="closeEditModal" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">Cancel</button>
+                    <button type="submit" :disabled="saving" class="rounded-lg bg-yellow-100 px-5 py-2.5 text-sm font-semibold text-yellow-700 hover:bg-yellow-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20">
+                        <span x-show="!saving">Save Changes</span>
+                        <span x-show="saving">Saving...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div x-show="archiveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 dark:bg-gray-900">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
                 Confirm Archive
@@ -657,7 +752,7 @@
         </div>
     </div>
 
-    <div x-show="deleteModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div x-show="deleteModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 dark:bg-gray-900">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
                 Confirm Delete
@@ -672,7 +767,7 @@
         </div>
     </div>
 
-    <div x-show="successModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div x-show="successModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center dark:bg-gray-900">
             <div class="mb-4 flex justify-center">
                 <div class="flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/10">

@@ -27,7 +27,7 @@ class SchoolAdminUserImportController extends Controller
         ];
 
         $content = "full_name,email,role\n";
-        $content .= "Juan Dela Cruz,juan@example.com,Teacher\n";
+        $content .= "Juan Dela Cruz,juan@example.com,Evaluator\n";
         $content .= "Maria Santos,maria@example.com,Principal\n";
 
         return response($content, 200, $headers);
@@ -337,8 +337,8 @@ class SchoolAdminUserImportController extends Controller
 
             if ($role === '') {
                 $errors['role'] = 'Role is required.';
-            } elseif (! in_array($normalizedRole, ['principal', 'teacher'])) {
-                $errors['role'] = 'Role must be Principal or Teacher.';
+            } elseif (! in_array($normalizedRole, ['principal', 'evaluator'])) {
+                $errors['role'] = 'Role must be Principal or evaluator.';
             } else {
                 $roleRow = $roleMap[$normalizedRole] ?? null;
                 if (! $roleRow) {
@@ -369,7 +369,7 @@ class SchoolAdminUserImportController extends Controller
             'Accept' => 'application/json',
         ])->get(env('SUPABASE_URL') . '/rest/v1/roles', [
             'select' => 'id,name',
-            'name' => 'in.(Principal,Teacher)',
+            'name' => 'in.(Principal,Evaluator)',
         ]);
 
         if (! $response->successful()) {

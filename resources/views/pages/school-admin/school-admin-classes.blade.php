@@ -8,7 +8,7 @@
             :school-years="$schoolYears"
             :selected-year-id="$selectedYearId"
             :grades="$grades"
-            :teachers="$teachers"
+            
         />
     </div>
 @endsection

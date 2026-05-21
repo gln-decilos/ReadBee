@@ -91,7 +91,7 @@
                                             >
                                                 <option value="">Select role</option>
                                                 <option value="Principal">Principal</option>
-                                                <option value="Teacher">Teacher</option>
+                                                <option value="Evaluator">Evaluator</option>
                                             </select>
                                         </td>
 
@@ -162,7 +162,7 @@
                     errors: row.errors ?? {},
                 })),
 
-                allowedRoles: ['principal', 'teacher'],
+                allowedRoles: ['principal', 'evaluator'],
 
                 init() {
                     this.validateAllRows();
@@ -216,7 +216,7 @@
                         if (role === '') {
                             errors.role = 'Role is required.';
                         } else if (!this.allowedRoles.includes(normalizedRole)) {
-                            errors.role = 'Role must be Principal or Teacher.';
+                            errors.role = 'Role must be Principal or Evaluator.';
                         }
 
                         return {

@@ -221,7 +221,7 @@
                     User Accounts
                 </h3>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Manage principal and teacher accounts for your school.
+                    Manage principal and evaluator accounts for your school.
                 </p>
             </div>
 

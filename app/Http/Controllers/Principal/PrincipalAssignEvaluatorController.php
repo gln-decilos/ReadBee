@@ -188,6 +188,173 @@ class PrincipalAssignEvaluatorController extends Controller
         ]);
     }
 
+
+    public function bulkStore(Request $request)
+    {
+        $validated = $request->validate([
+            'year_id' => 'required|uuid',
+            'schedule_id' => 'required|uuid',
+            'assignments' => 'required|array|min:1',
+            'assignments.*.grade_level_id' => 'required|uuid',
+            'assignments.*.section_id' => 'required|uuid',
+            'assignments.*.evaluator_user_id' => 'required|uuid',
+        ]);
+
+        $schoolId = $this->principalSchoolId();
+        $assignedBy = session('supabase_user.id');
+
+        if (! $schoolId) {
+            return response()->json([
+                'message' => 'No school assigned to your principal account.',
+            ], 403);
+        }
+
+        if (! $assignedBy) {
+            return response()->json([
+                'message' => 'Your user session is missing. Please sign in again.',
+            ], 401);
+        }
+
+        $schedule = $this->findSchedule($validated['schedule_id'], $schoolId, $validated['year_id']);
+
+        if (! $schedule) {
+            return response()->json([
+                'message' => 'The selected assessment schedule was not found for your school year.',
+                'errors' => [
+                    'schedule_id' => ['The selected assessment schedule was not found for your school year.'],
+                ],
+            ], 422);
+        }
+
+        if (($schedule['status'] ?? '') === 'cancelled') {
+            return response()->json([
+                'message' => 'Cancelled schedules cannot be assigned to evaluators.',
+                'errors' => [
+                    'schedule_id' => ['Cancelled schedules cannot be assigned to evaluators.'],
+                ],
+            ], 422);
+        }
+
+        $quarters = $this->fetchQuarters($schedule['year_id']);
+        $schoolYears = $this->fetchSchoolYears();
+        $evaluators = collect($this->fetchEvaluators($schoolId))->keyBy('user_id');
+        $scheduleLookup = [$schedule['schedule_id'] => $this->formatSchedule($schedule, $quarters)];
+        $created = [];
+        $skipped = [];
+        $mailSentCount = 0;
+        $seenSectionKeys = [];
+
+        foreach ($validated['assignments'] as $index => $row) {
+            $rowNumber = $index + 1;
+            $sectionKey = $schedule['schedule_id'] . '|' . $row['section_id'];
+
+            if (isset($seenSectionKeys[$sectionKey])) {
+                $skipped[] = [
+                    'row' => $rowNumber,
+                    'reason' => 'Duplicate section in this bulk submission.',
+                ];
+                continue;
+            }
+
+            $seenSectionKeys[$sectionKey] = true;
+
+            $section = $this->findSection(
+                $row['section_id'],
+                $schoolId,
+                $validated['year_id'],
+                $row['grade_level_id']
+            );
+
+            if (! $section) {
+                $skipped[] = [
+                    'row' => $rowNumber,
+                    'reason' => 'The selected section does not belong to the selected grade and school year.',
+                ];
+                continue;
+            }
+
+            $evaluator = $evaluators->get($row['evaluator_user_id']);
+
+            if (! $evaluator) {
+                $skipped[] = [
+                    'row' => $rowNumber,
+                    'reason' => 'The selected evaluator is not assigned to your school.',
+                ];
+                continue;
+            }
+
+            if ($this->assignmentExists($schedule['schedule_id'], $section['section_id'])) {
+                $skipped[] = [
+                    'row' => $rowNumber,
+                    'reason' => 'This section already has an evaluator for the selected schedule.',
+                    'section_name' => $section['section_name'] ?? null,
+                ];
+                continue;
+            }
+
+            $payload = [
+                'schedule_id' => $schedule['schedule_id'],
+                'evaluator_user_id' => $evaluator['user_id'],
+                'section_id' => $section['section_id'],
+                'year_id' => $schedule['year_id'],
+                'quarter_id' => $schedule['quarter_id'],
+                'assigned_by' => $assignedBy,
+                'assessment_date' => $schedule['assessment_date'],
+                'confirmation_status' => 'pending',
+                'assessment_status' => 'not_started',
+                'report_status' => 'not_submitted',
+            ];
+
+            $assignment = $this->createSupabaseRow('assigned_evaluators', $payload);
+
+            if (! $assignment) {
+                $skipped[] = [
+                    'row' => $rowNumber,
+                    'reason' => 'Failed to save this assignment. Check Laravel logs for the Supabase error.',
+                    'section_name' => $section['section_name'] ?? null,
+                ];
+                continue;
+            }
+
+            $formatted = $this->formatAssignment(
+                $assignment,
+                $scheduleLookup,
+                [$section['section_id'] => $this->formatSection($section)],
+                [$evaluator['user_id'] => $evaluator],
+                $quarters,
+                $schoolYears
+            );
+
+            if ($this->sendAssignmentEmail($formatted)) {
+                $mailSentCount++;
+            }
+
+            $created[] = $formatted;
+        }
+
+        if (empty($created)) {
+            return response()->json([
+                'message' => 'No evaluator assignments were created. Review the skipped rows and try again.',
+                'assignments' => [],
+                'skipped' => $skipped,
+                'mail_sent_count' => $mailSentCount,
+            ], 422);
+        }
+
+        $message = count($created) . ' evaluator assignment' . (count($created) === 1 ? '' : 's') . ' created successfully.';
+
+        if (! empty($skipped)) {
+            $message .= ' ' . count($skipped) . ' row' . (count($skipped) === 1 ? '' : 's') . ' skipped.';
+        }
+
+        return response()->json([
+            'message' => $message,
+            'assignments' => $created,
+            'skipped' => $skipped,
+            'mail_sent_count' => $mailSentCount,
+        ]);
+    }
+
     public function resend(string $assignmentId)
     {
         $schoolId = $this->principalSchoolId();

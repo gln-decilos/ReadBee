@@ -413,6 +413,9 @@ Route::prefix('principal')->group(function () {
     Route::post('assign-evaluator', [PrincipalAssignEvaluatorController::class, 'store'])
         ->name('principal.assign-evaluator.store');
 
+    Route::post('assign-evaluator/bulk', [PrincipalAssignEvaluatorController::class, 'bulkStore'])
+        ->name('principal.assign-evaluator.bulk-store');
+
     Route::post('assign-evaluator/{assignmentId}/resend', [PrincipalAssignEvaluatorController::class, 'resend'])
         ->name('principal.assign-evaluator.resend');
 

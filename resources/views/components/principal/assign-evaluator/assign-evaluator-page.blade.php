@@ -14,6 +14,7 @@
     x-cloak
     data-index-url="{{ route('principal.assign-evaluator') }}"
     data-store-url="{{ route('principal.assign-evaluator.store') }}"
+    data-bulk-store-url="{{ route('principal.assign-evaluator.bulk-store') }}"
     data-base-url="{{ url('/principal/assign-evaluator') }}"
     data-csrf-token="{{ csrf_token() }}"
     class="space-y-6"
@@ -30,7 +31,7 @@
             </div>
             <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white" x-text="feedbackTitle"></h3>
             <p class="mt-2 text-sm text-gray-500 dark:text-gray-400" x-text="feedbackMessage"></p>
-            <button type="button" @click="closeFeedback" class="mt-5 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-gray-900 hover:bg-brand-400">OK</button>
+            <button type="button" @click="closeFeedback" class="mt-5 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-400">OK</button>
         </div>
     </div>
 
@@ -49,11 +50,11 @@
         <div class="flex flex-col gap-5 border-b border-gray-200 px-6 py-6 dark:border-white/[0.05] lg:flex-row lg:items-end lg:justify-between">
             <div>
                 <div class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400">
-                    Assessment Evaluator Assignment
+                    Evaluator Assignment
                 </div>
                 <h3 class="mt-3 text-xl font-semibold text-gray-800 dark:text-white/90">Assign Evaluators</h3>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Select a grade, section, scheduled assessment, and evaluator. The evaluator will receive an email confirmation request.
+                    Assign evaluators by section. Evaluators will receive a confirmation request after assignment.
                 </p>
             </div>
 
@@ -83,14 +84,23 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-6 p-6 xl:grid-cols-[420px_minmax(0,1fr)]">
-            <section class="rounded-3xl border border-gray-200 bg-gray-50 p-5 dark:border-white/[0.05] dark:bg-gray-900/40">
-                <div>
-                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white">New Assignment</h4>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Current school year: <span class="font-medium text-gray-800 dark:text-gray-200" x-text="selectedYearLabel"></span></p>
+        <div class="space-y-6 p-6">
+            <section x-show="activeMode === 'single'" x-transition.opacity class="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+                <div class="border-b border-gray-200 p-5 dark:border-white/[0.05]">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <button type="button" @click="activeMode = ''; resetForm()" class="mb-2 inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                Back to assigned evaluators
+                            </button>
+                            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Assign One Evaluator</h4>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Current school year: <span class="font-medium text-gray-800 dark:text-gray-200" x-text="selectedYearLabel"></span></p>
+                        </div>
+                        <span class="inline-flex w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-white/10 dark:text-gray-300">One section only</span>
+                    </div>
                 </div>
 
-                <form @submit.prevent="assignEvaluator" class="mt-5 space-y-4">
+                <form @submit.prevent="assignEvaluator" class="grid grid-cols-1 gap-5 p-5 lg:grid-cols-2 xl:grid-cols-4">
                     <div>
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Grade Level</label>
                         <select x-model="form.grade_level_id" @change="onGradeChange" class="h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
@@ -124,12 +134,6 @@
                         <template x-if="formErrors.schedule_id"><p class="mt-1 text-sm text-red-600" x-text="formErrors.schedule_id[0]"></p></template>
                     </div>
 
-                    <div x-show="selectedSchedule" class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
-                        <p class="font-semibold" x-text="selectedSchedule?.quarter_label || 'Quarter'"></p>
-                        <p class="mt-1">Assessment date: <span x-text="formatDate(selectedSchedule?.assessment_date)"></span></p>
-                        <p class="mt-1 capitalize">Schedule status: <span x-text="selectedSchedule?.status"></span></p>
-                    </div>
-
                     <div>
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Evaluator</label>
                         <select x-model="form.evaluator_user_id" class="h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
@@ -141,13 +145,19 @@
                         <template x-if="formErrors.evaluator_user_id"><p class="mt-1 text-sm text-red-600" x-text="formErrors.evaluator_user_id[0]"></p></template>
                     </div>
 
-                    <div x-show="selectedEvaluator && !selectedEvaluator.email" class="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-700 dark:border-yellow-500/20 dark:bg-yellow-500/10 dark:text-yellow-300">
+                    <div x-show="selectedSchedule" class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300 lg:col-span-2 xl:col-span-4">
+                        <p class="font-semibold" x-text="selectedSchedule?.quarter_label || 'Quarter'"></p>
+                        <p class="mt-1">Assessment date: <span x-text="formatDate(selectedSchedule?.assessment_date)"></span></p>
+                        <p class="mt-1 capitalize">Schedule status: <span x-text="selectedSchedule?.status"></span></p>
+                    </div>
+
+                    <div x-show="selectedEvaluator && !selectedEvaluator.email" class="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-700 dark:border-yellow-500/20 dark:bg-yellow-500/10 dark:text-yellow-300 lg:col-span-2 xl:col-span-4">
                         This evaluator has no email in their profile. The assignment can be saved, but no confirmation email can be sent.
                     </div>
 
-                    <div class="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-800">
+                    <div class="flex flex-col gap-3 border-t border-gray-200 pt-5 dark:border-gray-800 sm:flex-row sm:justify-end lg:col-span-2 xl:col-span-4">
                         <button type="button" @click="resetForm" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">Clear</button>
-                        <button type="submit" :disabled="saving" class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-gray-900 hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60">
+                        <button type="submit" :disabled="saving" class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60">
                             <span x-show="!saving">Assign Evaluator</span>
                             <span x-show="saving">Assigning...</span>
                         </button>
@@ -155,14 +165,165 @@
                 </form>
             </section>
 
-            <section class="min-w-0 rounded-3xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+            <section x-show="activeMode === 'bulk'" x-transition.opacity class="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
+                <div class="border-b border-gray-200 p-5 dark:border-white/[0.05]">
+                    <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                        <div class="max-w-2xl">
+                            <button type="button" @click="activeMode = ''; resetBulkForm()" class="mb-2 inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                Back to assigned evaluators
+                            </button>
+                            <div class="inline-flex items-center rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">
+                                Recommended for many sections
+                            </div>
+                            <h4 class="mt-3 text-lg font-semibold text-gray-900 dark:text-white">Assign Multiple Evaluators</h4>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Follow the steps below. Confirmation requests will be sent after you submit.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-2 text-xs text-gray-600 dark:text-gray-300 sm:grid-cols-3 xl:min-w-[520px]">
+                            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/50"><span class="font-semibold text-gray-900 dark:text-white">1.</span> Choose schedule</div>
+                            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/50"><span class="font-semibold text-gray-900 dark:text-white">2.</span> Load sections</div>
+                            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/50"><span class="font-semibold text-gray-900 dark:text-white">3.</span> Pick evaluators</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-5 p-5">
+                    <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Step 1: Scheduled Assessment</label>
+                            <select x-model="bulkForm.schedule_id" class="h-11 w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                <option value="">Select the assessment schedule</option>
+                                <template x-for="schedule in schedules" :key="`bulk-schedule-${schedule.schedule_id}`">
+                                    <option :value="schedule.schedule_id" x-text="schedule.label"></option>
+                                </template>
+                            </select>
+                            <template x-if="bulkErrors.schedule_id"><p class="mt-1 text-sm text-red-600" x-text="bulkErrors.schedule_id[0]"></p></template>
+                        </div>
+
+                        <div class="flex flex-col gap-2 sm:flex-row xl:justify-end">
+                            <button type="button" @click="loadAllSectionsToBulk" class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm  text-white hover:bg-brand-400">
+                                Load Available Sections
+                            </button>
+                            <button type="button" @click="addBulkRow" class="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">
+                                Add One Section
+                            </button>
+                        </div>
+                    </div>
+
+                    <div x-show="bulkSelectedSchedule" class="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
+                        <p class="font-semibold" x-text="bulkSelectedSchedule?.quarter_label || 'Selected assessment'"></p>
+                        <p class="mt-1">Assessment date: <span x-text="formatDate(bulkSelectedSchedule?.assessment_date)"></span></p>
+                    </div>
+
+                    <div class="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-gray-900/40">
+                        <div class="flex flex-col gap-2 border-b border-gray-200 pb-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h5 class="font-semibold text-gray-900 dark:text-white">Step 2 and 3: Sections and Evaluators</h5>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Each card is one section assignment. Choose the evaluator for each card.</p>
+                            </div>
+                            <span class="inline-flex w-fit rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 shadow-sm dark:bg-white/10 dark:text-gray-300">
+                                <span x-text="bulkForm.assignments.length"></span>&nbsp;section(s)
+                            </span>
+                        </div>
+
+                        <div class="mt-4 space-y-3">
+                            <template x-for="(row, index) in bulkForm.assignments" :key="row.key">
+                                <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+                                    <div class="flex flex-col gap-4 xl:flex-row xl:items-start">
+                                        <div class="flex items-center gap-3 xl:w-48 xl:pt-2">
+                                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-500/10 dark:text-brand-400" x-text="index + 1"></span>
+                                            <div>
+                                                <p class="text-sm font-semibold text-gray-900 dark:text-white">Section Assignment</p>
+                                                <p class="text-xs text-gray-500 dark:text-gray-400">One evaluator per section</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid min-w-0 flex-1 grid-cols-1 gap-3 md:grid-cols-3">
+                                            <div>
+                                                <label class="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Grade</label>
+                                                <select x-model="row.grade_level_id" @change="onBulkGradeChange(row)" class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                                    <option value="">Select grade</option>
+                                                    <template x-for="grade in grades" :key="`bulk-grade-${row.key}-${grade.grade_level_id}`">
+                                                        <option :value="grade.grade_level_id" x-text="`Grade ${grade.grade_number}`"></option>
+                                                    </template>
+                                                </select>
+                                                <template x-if="bulkErrors[`assignments.${index}.grade_level_id`]"><p class="mt-1 text-xs text-red-600" x-text="bulkErrors[`assignments.${index}.grade_level_id`][0]"></p></template>
+                                            </div>
+
+                                            <div>
+                                                <label class="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Section</label>
+                                                <select x-model="row.section_id" class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                                    <option value="">Select section</option>
+                                                    <template x-for="section in bulkRowSections(row)" :key="`bulk-section-${row.key}-${section.section_id}`">
+                                                        <option :value="section.section_id" x-text="section.section_name"></option>
+                                                    </template>
+                                                </select>
+                                                <template x-if="bulkErrors[`assignments.${index}.section_id`]"><p class="mt-1 text-xs text-red-600" x-text="bulkErrors[`assignments.${index}.section_id`][0]"></p></template>
+                                            </div>
+
+                                            <div>
+                                                <label class="mb-1.5 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Evaluator</label>
+                                                <select x-model="row.evaluator_user_id" class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                                    <option value="">Select evaluator</option>
+                                                    <template x-for="evaluator in evaluators" :key="`bulk-evaluator-${row.key}-${evaluator.user_id}`">
+                                                        <option :value="evaluator.user_id" x-text="evaluator.label"></option>
+                                                    </template>
+                                                </select>
+                                                <template x-if="bulkErrors[`assignments.${index}.evaluator_user_id`]"><p class="mt-1 text-xs text-red-600" x-text="bulkErrors[`assignments.${index}.evaluator_user_id`][0]"></p></template>
+                                            </div>
+                                        </div>
+
+                                        <div class="xl:pt-6">
+                                            <button type="button" @click="removeBulkRow(index)" :disabled="bulkForm.assignments.length === 1" title="Remove section" aria-label="Remove section" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-500/20 dark:hover:bg-red-500/10">
+                                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none"><path d="M6 7H18M10 11V17M14 11V17M9 7L9.5 5.5C9.7 4.9 10.2 4.5 10.8 4.5H13.2C13.8 4.5 14.3 4.9 14.5 5.5L15 7M8 7L8.6 19C8.65 19.85 9.35 20.5 10.2 20.5H13.8C14.65 20.5 15.35 19.85 15.4 19L16 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div x-show="bulkSkipped.length" class="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-500/20 dark:bg-yellow-500/10 dark:text-yellow-300">
+                        <p class="font-semibold">Some rows were skipped</p>
+                        <p class="mt-1 text-xs">These rows were not saved because they already exist or need checking.</p>
+                        <ul class="mt-2 list-disc space-y-1 pl-5">
+                            <template x-for="item in bulkSkipped" :key="`${item.row}-${item.reason}`">
+                                <li><span x-text="`Row ${item.row}: ${item.reason}`"></span></li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <div class="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            Ready to assign <span class="font-semibold text-gray-900 dark:text-white" x-text="bulkForm.assignments.length"></span> section(s).
+                        </p>
+                        <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                            <button type="button" @click="resetBulkForm" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">Clear</button>
+                            <button type="button" @click="submitBulkAssignments" :disabled="bulkSaving" class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm  text-white hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60">
+                                <span x-show="!bulkSaving">Submit Assignments</span>
+                                <span x-show="bulkSaving">Submitting...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section x-show="!activeMode" x-transition.opacity class="min-w-0 rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.05] dark:bg-white/[0.03]">
                 <div class="flex flex-col gap-4 border-b border-gray-200 p-5 dark:border-white/[0.05] lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Assigned Evaluators</h4>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage evaluator assignments for the selected school year.</p>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Review existing assignments for the selected school year.</p>
                     </div>
-                    <div class="w-full max-w-sm">
-                        <input type="search" x-model="search" @input="tablePage = 1" placeholder="Search evaluator, section, grade, status" class="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                    <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end lg:w-auto">
+                        <div class="w-full sm:w-72 lg:w-80">
+                            <input type="search" x-model="search" @input="tablePage = 1" placeholder="Search assignments..." class="h-11 w-full rounded-xl border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" />
+                        </div>
+                        <div class="flex shrink-0 flex-nowrap items-center gap-2">
+                            <button type="button" @click="activeMode = 'single'" class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm font-medium leading-none text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">Assign One</button>
+                            <button type="button" @click="activeMode = 'bulk'" class="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-brand-500 px-3.5 py-2.5 text-sm  leading-none text-white hover:bg-brand-400">Assign Multiple</button>
+                        </div>
                     </div>
                 </div>
 
@@ -255,7 +416,7 @@
                         </button>
 
                         <template x-for="pageNumber in visibleTablePages()" :key="pageNumber">
-                            <button type="button" @click="goToTablePage(pageNumber)" class="rounded-lg border px-3 py-2 text-sm font-medium" :class="tablePage === pageNumber ? 'border-brand-500 bg-brand-500 text-gray-900' : 'border-gray-300 text-gray-700 dark:border-gray-700 dark:text-gray-300'" x-text="pageNumber"></button>
+                            <button type="button" @click="goToTablePage(pageNumber)" class="rounded-lg border px-3 py-2 text-sm font-medium" :class="tablePage === pageNumber ? 'border-brand-500 bg-brand-500 text-white' : 'border-gray-300 text-gray-700 dark:border-gray-700 dark:text-gray-300'" x-text="pageNumber"></button>
                         </template>
 
                         <button type="button" @click="goToTablePage(tablePage + 1)" :disabled="tablePage === tableLastPage" class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300">
@@ -279,6 +440,7 @@
             schedules: schedules || [],
             evaluators: evaluators || [],
             assignments: assignments || [],
+            activeMode: '',
             form: {
                 year_id: selectedYearId || '',
                 grade_level_id: '',
@@ -286,9 +448,24 @@
                 schedule_id: '',
                 evaluator_user_id: '',
             },
+            bulkForm: {
+                year_id: selectedYearId || '',
+                schedule_id: '',
+                assignments: [
+                    {
+                        key: Date.now(),
+                        grade_level_id: '',
+                        section_id: '',
+                        evaluator_user_id: '',
+                    },
+                ],
+            },
             formErrors: {},
+            bulkErrors: {},
+            bulkSkipped: [],
             loadingYear: false,
             saving: false,
+            bulkSaving: false,
             followUpId: null,
             search: '',
             tablePage: 1,
@@ -303,15 +480,18 @@
             confirmAction: null,
             indexUrl: '',
             storeUrl: '',
+            bulkStoreUrl: '',
             baseUrl: '',
             csrfToken: '',
 
             init(root) {
                 this.indexUrl = root.dataset.indexUrl;
                 this.storeUrl = root.dataset.storeUrl;
+                this.bulkStoreUrl = root.dataset.bulkStoreUrl;
                 this.baseUrl = root.dataset.baseUrl;
                 this.csrfToken = root.dataset.csrfToken;
                 this.form.year_id = this.selectedYearId || '';
+                this.bulkForm.year_id = this.selectedYearId || '';
             },
 
             get selectedYearLabel() {
@@ -329,6 +509,10 @@
 
             get selectedSchedule() {
                 return this.schedules.find(schedule => String(schedule.schedule_id) === String(this.form.schedule_id)) || null;
+            },
+
+            get bulkSelectedSchedule() {
+                return this.schedules.find(schedule => String(schedule.schedule_id) === String(this.bulkForm.schedule_id)) || null;
             },
 
             get selectedEvaluator() {
@@ -436,6 +620,167 @@
                 };
             },
 
+            makeBulkRow() {
+                return {
+                    key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                    grade_level_id: '',
+                    section_id: '',
+                    evaluator_user_id: '',
+                };
+            },
+
+            resetBulkForm() {
+                this.bulkErrors = {};
+                this.bulkSkipped = [];
+                this.bulkForm = {
+                    year_id: this.selectedYearId || '',
+                    schedule_id: '',
+                    assignments: [this.makeBulkRow()],
+                };
+            },
+
+            addBulkRow() {
+                this.bulkForm.assignments.push(this.makeBulkRow());
+            },
+
+            removeBulkRow(index) {
+                if (this.bulkForm.assignments.length === 1) return;
+                this.bulkForm.assignments.splice(index, 1);
+            },
+
+            bulkRowSections(row) {
+                const grade = this.grades.find(item => String(item.grade_level_id) === String(row.grade_level_id));
+                return grade ? (grade.sections || []) : [];
+            },
+
+            onBulkGradeChange(row) {
+                row.section_id = this.bulkRowSections(row)[0]?.section_id || '';
+            },
+
+            loadAllSectionsToBulk() {
+                if (!this.bulkForm.schedule_id) {
+                    this.showFeedback('Select Schedule', 'Please select a scheduled assessment first before loading all sections.', 'error');
+                    return;
+                }
+
+                const assignedSectionIds = new Set(
+                    this.assignments
+                        .filter(item => String(item.schedule_id) === String(this.bulkForm.schedule_id))
+                        .map(item => String(item.section_id))
+                );
+
+                const rows = [];
+
+                this.grades.forEach((grade) => {
+                    (grade.sections || []).forEach((section) => {
+                        if (!assignedSectionIds.has(String(section.section_id))) {
+                            rows.push({
+                                ...this.makeBulkRow(),
+                                grade_level_id: grade.grade_level_id,
+                                section_id: section.section_id,
+                                evaluator_user_id: '',
+                            });
+                        }
+                    });
+                });
+
+                if (!rows.length) {
+                    this.showFeedback('No Sections Available', 'All sections already have evaluator assignments for the selected schedule.', 'error');
+                    return;
+                }
+
+                this.bulkErrors = {};
+                this.bulkSkipped = [];
+                this.bulkForm.assignments = rows;
+            },
+
+            validateBulkForm() {
+                this.bulkErrors = {};
+                let hasError = false;
+
+                if (!this.bulkForm.schedule_id) {
+                    this.bulkErrors.schedule_id = ['Scheduled assessment is required.'];
+                    hasError = true;
+                }
+
+                this.bulkForm.assignments.forEach((row, index) => {
+                    if (!row.grade_level_id) {
+                        this.bulkErrors[`assignments.${index}.grade_level_id`] = ['Grade is required.'];
+                        hasError = true;
+                    }
+
+                    if (!row.section_id) {
+                        this.bulkErrors[`assignments.${index}.section_id`] = ['Section is required.'];
+                        hasError = true;
+                    }
+
+                    if (!row.evaluator_user_id) {
+                        this.bulkErrors[`assignments.${index}.evaluator_user_id`] = ['Evaluator is required.'];
+                        hasError = true;
+                    }
+                });
+
+                return !hasError;
+            },
+
+            async submitBulkAssignments() {
+                this.bulkSkipped = [];
+
+                if (!this.validateBulkForm()) {
+                    this.showFeedback('Incomplete Rows', 'Please complete the schedule, grade, section, and evaluator for each row.', 'error');
+                    return;
+                }
+
+                this.bulkSaving = true;
+
+                const payload = {
+                    year_id: this.selectedYearId || this.bulkForm.year_id,
+                    schedule_id: this.bulkForm.schedule_id,
+                    assignments: this.bulkForm.assignments.map((row) => ({
+                        grade_level_id: row.grade_level_id,
+                        section_id: row.section_id,
+                        evaluator_user_id: row.evaluator_user_id,
+                    })),
+                };
+
+                try {
+                    const response = await fetch(this.bulkStoreUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': this.csrfToken,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const data = await response.json();
+                    this.bulkSkipped = data.skipped || [];
+
+                    if (!response.ok) {
+                        this.bulkErrors = data.errors || {};
+                        this.showFeedback('Error', data.message || 'Failed to create bulk evaluator assignments.', 'error');
+                        return;
+                    }
+
+                    const newAssignments = data.assignments || [];
+                    const existing = this.assignments.filter((item) => !newAssignments.some((created) => String(created.assignment_id) === String(item.assignment_id)));
+                    this.assignments = [...newAssignments, ...existing];
+                    this.tablePage = 1;
+                    this.showFeedback('Success', data.message || 'Bulk evaluator assignments created successfully.', 'success');
+                    this.activeMode = '';
+
+                    if (!this.bulkSkipped.length) {
+                        this.resetBulkForm();
+                    }
+                } catch (error) {
+                    console.error('Bulk assign evaluator error:', error);
+                    this.showFeedback('Error', 'An error occurred while creating bulk evaluator assignments.', 'error');
+                } finally {
+                    this.bulkSaving = false;
+                }
+            },
+
             async changeYear(yearId) {
                 if (!yearId || this.loadingYear) return;
 
@@ -467,6 +812,8 @@
                     this.search = '';
                     this.tablePage = 1;
                     this.resetForm();
+                    this.resetBulkForm();
+                    this.activeMode = '';
                 } catch (error) {
                     console.error('Change evaluator assignment year error:', error);
                     this.showFeedback('Error', 'An error occurred while loading evaluator assignment data.', 'error');
@@ -502,6 +849,7 @@
                     this.tablePage = 1;
                     this.showFeedback('Success', data.message || 'Evaluator assigned successfully.', 'success');
                     this.resetForm();
+                    this.activeMode = '';
                 } catch (error) {
                     console.error('Assign evaluator error:', error);
                     this.showFeedback('Error', 'An error occurred while assigning the evaluator.', 'error');

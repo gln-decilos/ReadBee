@@ -1,0 +1,55 @@
+/* Minimalist Pagination Style */
+:root {
+  --accent: #ffc300;
+  --text-color: #0d0d0eff;
+}
+
+.pager {
+  font-size: 0;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.pager__item {
+  display: inline-block;
+  margin: 0 2px;
+  font-size: 0.85rem;
+}
+
+.pager__link {
+  display: inline-block;
+  padding: 4px 10px;
+  color: var(--text-color);
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  background-color: #fff;
+  font-weight: 500;
+}
+
+.pager__link:hover,
+.pager__item.active .pager__link {
+  background-color: var(--accent);
+  color: black;
+  border-color: var(--accent);
+}
+
+.pager__item--prev svg,
+.pager__item--next svg {
+  width: 10px;
+  height: 10px;
+  vertical-align: middle;
+  fill: var(--text-color);
+}
+
+.pager__item--next svg {
+  transform: rotate(180deg);
+}
+
+@media screen and (max-width: 576px) {
+  .pager__link {
+    padding: 3px 6px;
+    font-size: 0.75rem;
+  }
+}

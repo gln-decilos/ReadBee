@@ -19,8 +19,13 @@ use App\Http\Controllers\Principal\PrincipalPupilsController;
 use App\Http\Controllers\Principal\PrincipalAssessmentScheduleController;
 use App\Http\Controllers\Principal\PrincipalAssignEvaluatorController;
 
-// dashboard pages
+// landing page
 Route::get('/', function () {
+    return view('pages.landing', ['title' => 'ReadBee']);
+})->name('landing');
+
+// dashboard pages
+Route::get('/dashboard', function () {
     return view('pages.dashboard.ecommerce', ['title' => 'ReadBee Dashboard']);
 })->name('dashboard');
 
@@ -412,7 +417,6 @@ Route::prefix('principal')->group(function () {
     Route::get('evaluator-assignments/{assignmentId}/confirm', [PrincipalAssignEvaluatorController::class, 'confirm'])
         ->name('principal.assign-evaluator.confirm')
         ->middleware('signed');
-
 
 
 

@@ -18,6 +18,10 @@ use App\Http\Controllers\Principal\PrincipalReadingMaterialController;
 use App\Http\Controllers\Principal\PrincipalPupilsController;
 use App\Http\Controllers\Principal\PrincipalAssessmentScheduleController;
 use App\Http\Controllers\Principal\PrincipalAssignEvaluatorController;
+use App\Http\Controllers\EvaluatorController;
+use App\Http\Controllers\Evaluator\EvaluatorAssignmentController;
+use App\Http\Controllers\Evaluator\EvaluatorReadingMaterialController;
+use App\Http\Controllers\Evaluator\EvaluatorPupilsController;
 
 // landing page
 Route::get('/', function () {
@@ -80,6 +84,7 @@ Route::get('/signup', function () {
 })->name('signup');
 
 Route::post('/logout', [SignInController::class, 'logout'])->name('logout');
+Route::post('/designation/switch', [SignInController::class, 'switchDesignation'])->name('designation.switch');
 
 // ui elements pages
 Route::get('/alerts', function () {
@@ -422,4 +427,65 @@ Route::prefix('principal')->group(function () {
 
 });
 
+
+Route::prefix('evaluator')->group(function () {
+    Route::get('dashboard', [EvaluatorController::class, 'dashboard'])
+        ->name('evaluator.dashboard');
+
+    Route::get('profile', [EvaluatorController::class, 'profile'])
+        ->name('evaluator.profile');
+
+    Route::get('assignments', [EvaluatorAssignmentController::class, 'index'])
+        ->name('evaluator.assignments');
+
+    Route::patch('assignments/{assignmentId}/confirm', [EvaluatorAssignmentController::class, 'confirm'])
+        ->name('evaluator.assignments.confirm');
+
+
+    Route::get('pupils', [EvaluatorPupilsController::class, 'index'])
+        ->name('evaluator.pupils');
+
+    Route::post('pupils', [EvaluatorPupilsController::class, 'store'])
+        ->name('evaluator.pupils.store');
+
+    Route::patch('pupils/{pupilId}', [EvaluatorPupilsController::class, 'update'])
+        ->name('evaluator.pupils.update');
+
+    Route::patch('pupils/{pupilId}/drop', [EvaluatorPupilsController::class, 'markDropped'])
+        ->name('evaluator.pupils.drop');
+
+    Route::patch('pupils/{pupilId}/restore', [EvaluatorPupilsController::class, 'restore'])
+        ->name('evaluator.pupils.restore');
+
+    Route::patch('pupils/{pupilId}/transfer-section', [EvaluatorPupilsController::class, 'transferSection'])
+        ->name('evaluator.pupils.transfer-section');
+
+    Route::delete('pupils/{pupilId}', [EvaluatorPupilsController::class, 'delete'])
+        ->name('evaluator.pupils.delete');
+
+    Route::delete('pupils', [EvaluatorPupilsController::class, 'bulkDelete'])
+        ->name('evaluator.pupils.bulk-delete');
+
+    Route::patch('pupils/{pupilId}/archive', [EvaluatorPupilsController::class, 'archive'])
+        ->name('evaluator.pupils.archive');
+
+    Route::get('pupils/import/template', [EvaluatorPupilsController::class, 'downloadImportTemplate'])
+        ->name('evaluator.pupils.import.template');
+
+    Route::post('pupils/import/preview', [EvaluatorPupilsController::class, 'previewImport'])
+        ->name('evaluator.pupils.import.preview');
+
+    Route::post('pupils/import/commit', [EvaluatorPupilsController::class, 'commitImport'])
+        ->name('evaluator.pupils.import.commit');
+
+    Route::get('reading-materials', [EvaluatorReadingMaterialController::class, 'index'])
+        ->name('evaluator.reading-materials');
+
+    Route::post('reading-materials', [EvaluatorReadingMaterialController::class, 'store'])
+        ->name('evaluator.reading-materials.store');
+});
+
+// Backwards-compatible teacher dashboard route for existing teacher redirects.
+Route::get('/teacher/dashboard', [EvaluatorController::class, 'dashboard'])
+    ->name('teacher.dashboard');
 

@@ -157,8 +157,8 @@ class SignInController extends Controller
                 ->with('success', 'Signed in successfully.');
         }
 
-        if ($activeRoleName === 'teacher') {
-            return redirect()->route('teacher.dashboard')
+        if (in_array($activeRoleName, ['evaluator', 'teacher'], true)) {
+            return redirect()->route('evaluator.dashboard')
                 ->with('success', 'Signed in successfully.');
         }
 
@@ -204,8 +204,8 @@ class SignInController extends Controller
                 ->with('success', 'Designation switched successfully.');
         }
 
-        if ($roleName === 'teacher') {
-            return redirect()->route('teacher.dashboard')
+        if (in_array($roleName, ['evaluator', 'teacher'], true)) {
+            return redirect()->route('evaluator.dashboard')
                 ->with('success', 'Designation switched successfully.');
         }
 

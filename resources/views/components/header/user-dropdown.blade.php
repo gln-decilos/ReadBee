@@ -18,6 +18,10 @@
         $profilePath = '/district-admin/profile';
     } elseif (($roleName ?? '') === 'Admin' && ($scopeType ?? '') === 'school') {
         $profilePath = '/school-admin/profile';
+    } elseif (in_array(strtolower($roleName ?? ''), ['evaluator', 'teacher'], true)) {
+        $profilePath = '/evaluator/profile';
+    } elseif (strtolower($roleName ?? '') === 'principal') {
+        $profilePath = '/principal/profile';
     }
 
     $parts = preg_split('/\s+/', trim($fullName));

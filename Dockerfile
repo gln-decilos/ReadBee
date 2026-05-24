@@ -14,14 +14,14 @@ RUN npm install
 # Copy all project files
 COPY . .
 
-# Build Vite frontend
+# Build frontend assets
 RUN npm run build
 
 
 # =========================
 # Stage 2 - Laravel Backend
 # =========================
-FROM php:8.2-cli AS backend
+FROM php:8.2-cli
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -40,11 +40,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
-# Copy project files
-COPY . .
-
-# Copy built frontend from Stage 1
-COPY --from=frontend /app/dist ./public/build
+# Copy project files INCLUDING built assets
+COPY --from=frontend /app .
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
@@ -57,5 +54,5 @@ RUN php artisan config:clear && \
 # Expose Render port
 EXPOSE 10000
 
-# Start Laravel server
+# Start Laravel
 CMD php artisan serve --host=0.0.0.0 --port=10000

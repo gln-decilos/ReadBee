@@ -46,9 +46,6 @@ COPY --from=frontend /app .
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Clear ALL Laravel caches
-RUN php artisan optimize:clear
-
 # Expose Render port
 EXPOSE 10000
 

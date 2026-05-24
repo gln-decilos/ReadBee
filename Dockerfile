@@ -1,36 +1,34 @@
-# Stage 1 - Build Frontend (Vite)
+# Frontend build
 FROM node:18 AS frontend
+
 WORKDIR /app
+
 COPY package*.json ./
 RUN npm install
+
 COPY . .
 RUN npm run build
 
-# Stage 2 - Backend (Laravel + PHP + Composer)
-FROM php:8.2-fpm AS backend
 
-# Install system dependencies
+# Backend
+FROM php:8.2-cli AS backend
+
 RUN apt-get update && apt-get install -y \
-    git curl unzip libpq-dev libonig-dev libzip-dev zip \
-    && docker-php-ext-install pdo pdo_mysql mbstring zip
+    git unzip curl libzip-dev zip nodejs npm
 
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+RUN docker-php-ext-install zip pdo pdo_mysql
 
-WORKDIR /var/www
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy app files
+WORKDIR /app
+
 COPY . .
 
-# Copy built frontend from Stage 1
-COPY --from=frontend /app/public/dist ./public/dist
+# Copy Vite build files
+COPY --from=frontend /app/dist ./public/build
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install
 
-# Laravel setup
-RUN php artisan config:clear && \
-    php artisan route:clear && \
-    php artisan view:clear
+EXPOSE 10000
 
-CMD ["php-fpm"]
+CMD php artisan serve --host=0.0.0.0 --port=10000

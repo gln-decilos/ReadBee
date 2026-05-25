@@ -11,10 +11,10 @@ class PrincipalController extends Controller
     {
         $menuGroups = PrincipalMenuHelper::getMenuGroups();
 
-        return view(
-            'pages.principal.principal-dashboard',
-            compact('menuGroups')
-        );
+        return view('pages.principal.principal-dashboard', [
+            'title' => 'Principal Dashboard',
+            'menuGroups' => $menuGroups,
+        ]);
     }
 
     public function profile()

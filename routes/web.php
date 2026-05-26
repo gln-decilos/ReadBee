@@ -22,6 +22,7 @@ use App\Http\Controllers\EvaluatorController;
 use App\Http\Controllers\Evaluator\EvaluatorAssignmentController;
 use App\Http\Controllers\Evaluator\EvaluatorReadingMaterialController;
 use App\Http\Controllers\Evaluator\EvaluatorPupilsController;
+use App\Http\Controllers\Evaluator\EvaluatorProgressMonitoringController;
 
 // landing page
 Route::get('/', function () {
@@ -440,6 +441,9 @@ Route::prefix('evaluator')->group(function () {
 
     Route::get('assignments', [EvaluatorAssignmentController::class, 'index'])
         ->name('evaluator.assignments');
+
+    Route::get('progress-monitoring', [EvaluatorProgressMonitoringController::class, 'index'])
+        ->name('evaluator.progress-monitoring');
 
     Route::patch('assignments/{assignmentId}/confirm', [EvaluatorAssignmentController::class, 'confirm'])
         ->name('evaluator.assignments.confirm');

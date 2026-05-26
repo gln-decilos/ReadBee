@@ -7,6 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $title ?? 'ReadBee' }} | Principal</title>
+    
+    <link rel="icon" type="image/png" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 

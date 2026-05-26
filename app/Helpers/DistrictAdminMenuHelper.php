@@ -12,13 +12,7 @@ class DistrictAdminMenuHelper
                 'name' => 'Dashboard',
                 'path' => '/district-admin/dashboard',
             ],
-            [
-                'name' => 'Forms',
-                'icon' => 'forms',
-                'subItems' => [
-                    ['name' => 'Form Elements', 'path' => '/form-elements', 'pro' => false],
-                ],
-            ],
+
 
             [
                 'icon' => 'municipality',
@@ -53,14 +47,7 @@ class DistrictAdminMenuHelper
                 'name' => 'User Profile',
                 'path' => '/district-admin/profile',
             ],
-            [
-                'icon' => 'charts',
-                'name' => 'Charts',
-                'subItems' => [
-                    ['name' => 'Line Chart', 'path' => '/line-chart', 'pro' => false],
-                    ['name' => 'Bar Chart', 'path' => '/bar-chart', 'pro' => false]
-                ],
-            ],
+
         ];
     }
 
@@ -78,10 +65,7 @@ class DistrictAdminMenuHelper
         ];
     }
 
-    public static function isActive($path)
-    {
-        return request()->is(ltrim($path, '/'));
-    }
+
 
     public static function getIconSvg($iconName)
     {

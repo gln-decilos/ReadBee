@@ -8,7 +8,7 @@
     <img
       src="{{ asset('landing-assets/images/LoadingBee.gif') }}"
       alt="Loading ReadBee"
-      class="h-24 w-24 object-contain sm:h-50 sm:w-50"
+      class="h-36 w-36 object-contain sm:h-44 sm:w-44 md:h-50 md:w-50"
     />
   </div>
 </div>

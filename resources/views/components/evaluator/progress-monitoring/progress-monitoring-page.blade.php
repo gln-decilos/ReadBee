@@ -19,6 +19,8 @@
             pupilSearch: '',
             selectedPupil: null,
             recordModalOpen: false,
+            recordModalVersion: 0,
+            modalCloseTimer: null,
             tablePage: 1,
             perPage: 10,
             loadingYear: false,
@@ -42,6 +44,12 @@
 
             destroy() {
                 this.stopAutoRefresh();
+
+                if (this.modalCloseTimer) {
+                    window.clearTimeout(this.modalCloseTimer);
+                    this.modalCloseTimer = null;
+                }
+
                 document.body.style.overflow = '';
             },
 
@@ -49,7 +57,7 @@
                 this.stopAutoRefresh();
 
                 this.refreshTimer = window.setInterval(() => {
-                    if (document.hidden) return;
+                    if (document.hidden || this.recordModalOpen) return;
                     this.refreshProgressData();
                 }, this.autoRefreshInterval);
             },
@@ -100,7 +108,7 @@
             },
 
             async refreshProgressData() {
-                if (!this.indexUrl || !this.selectedYearId || this.loadingYear || this.refreshingProgress) return;
+                if (!this.indexUrl || !this.selectedYearId || this.loadingYear || this.refreshingProgress || this.recordModalOpen) return;
 
                 this.refreshingProgress = true;
                 const currentAssignmentId = this.selectedAssignment?.assignment_id || null;
@@ -245,18 +253,52 @@
                 this.selectedPupil = null;
                 this.recordModalOpen = false;
                 document.body.style.overflow = '';
+                this.startAutoRefresh();
+            },
+
+            cloneRecordData(value) {
+                if (value === null || value === undefined) return null;
+                return JSON.parse(JSON.stringify(value));
             },
 
             openPupilRecords(pupil) {
                 if (!pupil?.has_any_record) return;
-                this.selectedPupil = pupil;
-                this.recordModalOpen = true;
-                document.body.style.overflow = 'hidden';
+
+                if (this.modalCloseTimer) {
+                    window.clearTimeout(this.modalCloseTimer);
+                    this.modalCloseTimer = null;
+                }
+
+                this.stopAutoRefresh();
+                this.recordModalOpen = false;
+                this.selectedPupil = null;
+                this.recordModalVersion++;
+
+                this.$nextTick(() => {
+                    this.selectedPupil = this.cloneRecordData(pupil);
+                    this.recordModalOpen = true;
+                    document.body.style.overflow = 'hidden';
+                });
             },
 
             closePupilRecords() {
                 this.recordModalOpen = false;
                 document.body.style.overflow = '';
+
+                const closingVersion = this.recordModalVersion;
+
+                if (this.modalCloseTimer) {
+                    window.clearTimeout(this.modalCloseTimer);
+                }
+
+                this.modalCloseTimer = window.setTimeout(() => {
+                    if (!this.recordModalOpen && this.recordModalVersion === closingVersion) {
+                        this.selectedPupil = null;
+                        this.startAutoRefresh();
+                    }
+
+                    this.modalCloseTimer = null;
+                }, 180);
             },
 
             nextPage() {
@@ -599,13 +641,6 @@
         <div class="absolute inset-0 bg-gray-950/70 backdrop-blur-sm" @click="closePupilRecords()"></div>
 
         <div
-            x-show="recordModalOpen && selectedPupil"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="translate-y-4 scale-95 opacity-0"
-            x-transition:enter-end="translate-y-0 scale-100 opacity-100"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="translate-y-0 scale-100 opacity-100"
-            x-transition:leave-end="translate-y-4 scale-95 opacity-0"
             @click.stop
             class="relative max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-3xl border border-white/20 bg-white shadow-2xl dark:border-gray-800 dark:bg-gray-950"
         >
@@ -669,7 +704,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                    <template x-for="language in ['english', 'filipino']" :key="`modal-${selectedPupil?.pupil_id}-${language}`">
+                    <template x-for="language in ['english', 'filipino']" :key="`modal-${recordModalVersion}-${selectedPupil?.pupil_id}-${language}`">
                         <section class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
                             <div class="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 dark:border-gray-800 sm:flex-row sm:items-start sm:justify-between">
                                 <div>

@@ -17,11 +17,7 @@ class EvaluatorMenuHelper
                 'name' => 'My Assignments',
                 'path' => '/evaluator/assignments',
             ],
-            [
-                'icon' => 'chart',
-                'name' => 'Progress Monitoring',
-                'path' => '/evaluator/progress-monitoring',
-            ],
+
             [
                 'icon' => 'users',
                 'name' => 'Pupil Management',
@@ -31,6 +27,17 @@ class EvaluatorMenuHelper
                 'icon' => 'book',
                 'name' => 'Reading Materials',
                 'path' => '/evaluator/reading-materials',
+            ],
+
+             [
+                'icon' => 'monitoring',
+                'name' => 'Progress Monitoring',
+                'path' => '/evaluator/progress-monitoring',
+            ],
+            [
+                'icon' => 'reports',
+                'name' => 'Class Reports',
+                'path' => '/evaluator/reports',
             ],
         ];
     }
@@ -72,6 +79,8 @@ class EvaluatorMenuHelper
             'calendar' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 2C8.41421 2 8.75 2.33579 8.75 2.75V3.75H15.25V2.75C15.25 2.33579 15.5858 2 16 2C16.4142 2 16.75 2.33579 16.75 2.75V3.75H18.5C19.7426 3.75 20.75 4.75736 20.75 6V19C20.75 20.2426 19.7426 21.25 18.5 21.25H5.5C4.25736 21.25 3.25 20.2426 3.25 19V6C3.25 4.75736 4.25736 3.75 5.5 3.75H7.25V2.75C7.25 2.33579 7.58579 2 8 2ZM4.75 9.75V19C4.75 19.4142 5.08579 19.75 5.5 19.75H18.5C18.9142 19.75 19.25 19.4142 19.25 19V9.75H4.75ZM19.25 8.25V6C19.25 5.58579 18.9142 5.25 18.5 5.25H5.5C5.08579 5.25 4.75 5.58579 4.75 6V8.25H19.25Z" fill="currentColor"></path></svg>',
             'book' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4.75 5.75C4.75 4.64543 5.64543 3.75 6.75 3.75H18C18.6904 3.75 19.25 4.30964 19.25 5V17.25C19.25 18.3546 18.3546 19.25 17.25 19.25H7C5.75736 19.25 4.75 18.2426 4.75 17V5.75Z" stroke="currentColor" stroke-width="1.5"/><path d="M7.75 8.25H15.75M7.75 11.75H15.75M7.75 15.25H12.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
             'chart' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4.75 19.25H19.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M7.25 16.25V11.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 16.25V7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16.75 16.25V9.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5.75 4.75H18.25C18.8023 4.75 19.25 5.19772 19.25 5.75V18.25C19.25 18.8023 18.8023 19.25 18.25 19.25H5.75C5.19772 19.25 4.75 18.8023 4.75 18.25V5.75C4.75 5.19772 5.19772 4.75 5.75 4.75Z" stroke="currentColor" stroke-width="1.5"/></svg>',
+            'monitoring' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4.75 18.25H19.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5.75 15.25L9.25 11.75L12.25 14.75L18.25 8.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.25 8.75H18.25V11.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.75 4.75H18.25C18.8023 4.75 19.25 5.19772 19.25 5.75V18.25C19.25 18.8023 18.8023 19.25 18.25 19.25H5.75C5.19772 19.25 4.75 18.8023 4.75 18.25V5.75C4.75 5.19772 5.19772 4.75 5.75 4.75Z" stroke="currentColor" stroke-width="1.5"/></svg>',
+            'reports' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.75 3.75H14.25L18.25 7.75V19.25C18.25 19.8023 17.8023 20.25 17.25 20.25H6.75C6.19772 20.25 5.75 19.8023 5.75 19.25V4.75C5.75 4.19772 6.19772 3.75 6.75 3.75H7.75Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14.25 3.75V7.75H18.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.75 11.25H15.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8.75 14.25H15.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8.75 17.25H12.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
             'users' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M16 11.25C17.7949 11.25 19.25 9.79493 19.25 8C19.25 6.20507 17.7949 4.75 16 4.75C14.2051 4.75 12.75 6.20507 12.75 8C12.75 9.79493 14.2051 11.25 16 11.25Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 11.25C9.79493 11.25 11.25 9.79493 11.25 8C11.25 6.20507 9.79493 4.75 8 4.75C6.20507 4.75 4.75 6.20507 4.75 8C4.75 9.79493 6.20507 11.25 8 11.25Z" stroke="currentColor" stroke-width="1.5"/><path d="M3.75 19.25C3.75 16.9028 5.65279 15 8 15C10.3472 15 12.25 16.9028 12.25 19.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11.75 19.25C11.75 16.9028 13.6528 15 16 15C18.3472 15 20.25 16.9028 20.25 19.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
             'user-profile' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 3.5C7.30558 3.5 3.5 7.30558 3.5 12C3.5 14.1526 4.3002 16.1184 5.61936 17.616C6.17279 15.3096 8.24852 13.5955 10.7246 13.5955H13.2746C15.7509 13.5955 17.8268 15.31 18.38 17.6167C19.6996 16.119 20.5 14.153 20.5 12C20.5 7.30558 16.6944 3.5 12 3.5ZM17.0246 18.8566V18.8455C17.0246 16.7744 15.3457 15.0955 13.2746 15.0955H10.7246C8.65354 15.0955 6.97461 16.7744 6.97461 18.8455V18.856C8.38223 19.8895 10.1198 20.5 12 20.5C13.8798 20.5 15.6171 19.8898 17.0246 18.8566ZM2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12ZM11.9991 7.25C10.8847 7.25 9.98126 8.15342 9.98126 9.26784C9.98126 10.3823 10.8847 11.2857 11.9991 11.2857C13.1135 11.2857 14.0169 10.3823 14.0169 9.26784C14.0169 8.15342 13.1135 7.25 11.9991 7.25ZM8.48126 9.26784C8.48126 7.32499 10.0563 5.75 11.9991 5.75C13.9419 5.75 15.5169 7.32499 15.5169 9.26784C15.5169 11.2107 13.9419 12.7857 11.9991 12.7857C10.0563 12.7857 8.48126 11.2107 8.48126 9.26784Z" fill="currentColor"/></svg>',
         ];

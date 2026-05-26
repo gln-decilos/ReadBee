@@ -22,6 +22,10 @@
             tablePage: 1,
             perPage: 10,
             loadingYear: false,
+            refreshingProgress: false,
+            refreshTimer: null,
+            autoRefreshInterval: 2000,
+            lastUpdatedAt: null,
             indexUrl: '',
 
             init(root) {
@@ -29,7 +33,32 @@
 
                 if (!this.yearPickerValue && this.schoolYears.length > 0) {
                     this.yearPickerValue = this.schoolYears[0].year_id;
+                    this.selectedYearId = this.yearPickerValue;
                 }
+
+                this.lastUpdatedAt = new Date();
+                this.startAutoRefresh();
+            },
+
+            destroy() {
+                this.stopAutoRefresh();
+                document.body.style.overflow = '';
+            },
+
+            startAutoRefresh() {
+                this.stopAutoRefresh();
+
+                this.refreshTimer = window.setInterval(() => {
+                    if (document.hidden) return;
+                    this.refreshProgressData();
+                }, this.autoRefreshInterval);
+            },
+
+            stopAutoRefresh() {
+                if (!this.refreshTimer) return;
+
+                window.clearInterval(this.refreshTimer);
+                this.refreshTimer = null;
             },
 
             async changeYear() {
@@ -39,6 +68,7 @@
                 const url = new URL(this.indexUrl, window.location.origin);
                 url.searchParams.set('year_id', this.yearPickerValue);
                 url.searchParams.set('ajax', '1');
+                url.searchParams.set('_', Date.now());
 
                 try {
                     const response = await fetch(url.toString(), {
@@ -52,11 +82,13 @@
                     }
 
                     this.selectedYearId = data.selectedYearId;
+                    this.yearPickerValue = data.selectedYearId;
                     this.schoolYears = data.schoolYears || this.schoolYears;
                     this.summary = data.summary || {};
                     this.assignments = data.assignments || [];
                     this.search = '';
                     this.statusFilter = 'all';
+                    this.lastUpdatedAt = new Date();
                     this.closeDetail();
                     window.history.replaceState({}, '', `${this.indexUrl}?year_id=${this.selectedYearId}`);
                 } catch (error) {
@@ -64,6 +96,64 @@
                     alert('Unable to load progress data. Please try again.');
                 } finally {
                     this.loadingYear = false;
+                }
+            },
+
+            async refreshProgressData() {
+                if (!this.indexUrl || !this.selectedYearId || this.loadingYear || this.refreshingProgress) return;
+
+                this.refreshingProgress = true;
+                const currentAssignmentId = this.selectedAssignment?.assignment_id || null;
+                const currentPupilId = this.selectedPupil?.pupil_id || null;
+                const url = new URL(this.indexUrl, window.location.origin);
+                url.searchParams.set('year_id', this.selectedYearId);
+                url.searchParams.set('ajax', '1');
+                url.searchParams.set('_', Date.now());
+
+                try {
+                    const response = await fetch(url.toString(), {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await response.json();
+
+                    if (!response.ok || !data.success) return;
+
+                    this.selectedYearId = data.selectedYearId || this.selectedYearId;
+                    this.yearPickerValue = this.selectedYearId;
+                    this.schoolYears = data.schoolYears || this.schoolYears;
+                    this.summary = data.summary || {};
+                    this.assignments = data.assignments || [];
+                    this.lastUpdatedAt = new Date();
+
+                    if (currentAssignmentId) {
+                        const updatedAssignment = this.assignments.find((assignment) => assignment.assignment_id === currentAssignmentId);
+
+                        if (!updatedAssignment) {
+                            this.closeDetail();
+                            return;
+                        }
+
+                        this.selectedAssignment = updatedAssignment;
+                    }
+
+                    if (currentPupilId && this.selectedAssignment) {
+                        const updatedPupil = (this.selectedAssignment.pupils || []).find((pupil) => pupil.pupil_id === currentPupilId);
+
+                        if (updatedPupil) {
+                            this.selectedPupil = updatedPupil;
+                        } else {
+                            this.closePupilRecords();
+                            this.selectedPupil = null;
+                        }
+                    }
+
+                    if (this.tablePage > this.totalPages) {
+                        this.tablePage = this.totalPages;
+                    }
+                } catch (error) {
+                    console.error('Progress monitoring auto-refresh error:', error);
+                } finally {
+                    this.refreshingProgress = false;
                 }
             },
 
@@ -125,6 +215,16 @@
 
             get tableEndItem() {
                 return Math.min(this.tablePage * this.perPage, this.filteredPupils.length);
+            },
+
+            get lastUpdatedText() {
+                if (!this.lastUpdatedAt) return 'Progress updates automatically';
+
+                return `Last updated ${this.lastUpdatedAt.toLocaleTimeString('en-PH', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit',
+                })}`;
             },
 
             selectAssignment(assignment) {
@@ -468,44 +568,6 @@
                                 <button type="button" @click="openPupilRecords(pupil)" :disabled="!pupil.has_any_record" class="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:opacity-70 dark:border-gray-700 dark:text-gray-300 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10 dark:hover:text-brand-300 dark:disabled:border-gray-800 dark:disabled:bg-white/[0.03] dark:disabled:text-gray-600">
                                     View Record
                                 </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </template>
-
-                                                    <div class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
-                                                        <div>
-                                                            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Miscue Summary</p>
-                                                            <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-                                                                <template x-for="item in pupil?.[language]?.record?.miscue_summary || []" :key="`${language}-miscue-${item.type}`">
-                                                                    <div class="flex justify-between border-b border-gray-100 px-3 py-2 text-xs last:border-b-0 dark:border-gray-800">
-                                                                        <span class="text-gray-500 dark:text-gray-400" x-text="item.type"></span>
-                                                                        <span class="font-medium text-gray-900 dark:text-white" x-text="item.count"></span>
-                                                                    </div>
-                                                                </template>
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Comprehension Summary</p>
-                                                            <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-                                                                <template x-for="item in pupil?.[language]?.record?.comprehension_summary || []" :key="`${language}-comp-${item.type}`">
-                                                                    <div class="flex justify-between border-b border-gray-100 px-3 py-2 text-xs last:border-b-0 dark:border-gray-800">
-                                                                        <span class="text-gray-500 dark:text-gray-400" x-text="item.type"></span>
-                                                                        <span class="font-medium text-gray-900 dark:text-white" x-text="item.count"></span>
-                                                                    </div>
-                                                                </template>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </template>
-
-                                            <template x-if="!pupil?.[language]?.assessed">
-                                                <div class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">No assessment record yet.</div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
                             </td>
                         </tr>
                     </tbody>

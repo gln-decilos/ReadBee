@@ -52,6 +52,21 @@
         transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease, background .22s ease;
     }
 
+    .readbee-stat-value {
+        font-weight: 600;
+        letter-spacing: -0.02em;
+    }
+
+    .readbee-dashboard-title {
+        font-weight: 600;
+        letter-spacing: -0.018em;
+    }
+
+    .readbee-dashboard-mini-value {
+        font-weight: 600;
+        letter-spacing: -0.015em;
+    }
+
     .readbee-stat-card:hover {
         transform: translateY(-4px);
         background: var(--readbee-brand-hover);
@@ -652,7 +667,7 @@
                     </div>
                     <div class="min-w-0">
                         <p class="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500 dark:text-gray-400">Principal Dashboard</p>
-                        <h1 class="mt-1 text-2xl font-bold leading-tight text-gray-950 dark:text-white sm:text-3xl">Reading Performance Overview</h1>
+                        <h1 class="readbee-dashboard-title mt-1 text-2xl font-semibold leading-tight text-gray-950 dark:text-white sm:text-3xl">Reading Performance Overview</h1>
                     </div>
                 </div>
                 <p class="mt-4 max-w-3xl text-sm leading-6 text-gray-600 dark:text-gray-300">
@@ -668,15 +683,15 @@
             <div class="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-3 sm:max-w-md sm:gap-3">
                 <div class="readbee-dashboard-mini-card rounded-2xl p-3 text-center shadow-theme-xs dark:bg-white/10">
                     <p class="truncate text-[11px] font-medium text-gray-500 dark:text-gray-300">Total Pupils</p>
-                    <p class="mt-1 text-xl font-bold text-gray-950 dark:text-white sm:text-2xl">240</p>
+                    <p class="readbee-dashboard-mini-value mt-1 text-xl font-semibold text-gray-950 dark:text-white sm:text-2xl">240</p>
                 </div>
                 <div class="readbee-dashboard-mini-card is-accent rounded-2xl p-3 text-center shadow-theme-xs">
                     <p class="truncate text-[11px] font-semibold text-gray-950">Assessed</p>
-                    <p class="mt-1 text-xl font-bold text-gray-950 sm:text-2xl">181</p>
+                    <p class="readbee-dashboard-mini-value mt-1 text-xl font-semibold text-gray-950 sm:text-2xl">181</p>
                 </div>
                 <div class="readbee-dashboard-mini-card rounded-2xl p-3 text-center shadow-theme-xs dark:bg-white/10">
                     <p class="truncate text-[11px] font-medium text-gray-500 dark:text-gray-300">Need Support</p>
-                    <p class="mt-1 text-xl font-bold text-gray-950 dark:text-white sm:text-2xl">37</p>
+                    <p class="readbee-dashboard-mini-value mt-1 text-xl font-semibold text-gray-950 dark:text-white sm:text-2xl">37</p>
                 </div>
             </div>
         </div>
@@ -689,7 +704,7 @@
                     <div class="min-w-0 flex-1">
                         <p class="readbee-stat-title truncate text-sm font-semibold text-gray-600 dark:text-gray-300" x-text="card.label"></p>
                         <div class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                            <p class="readbee-stat-value text-2xl font-bold leading-none text-gray-950 dark:text-white xl:text-3xl" x-text="card.value"></p>
+                            <p class="readbee-stat-value text-2xl font-semibold leading-none text-gray-950 dark:text-white xl:text-3xl" x-text="card.value"></p>
                             <span class="readbee-stat-percent rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-200" x-text="card.percent"></span>
                         </div>
                     </div>

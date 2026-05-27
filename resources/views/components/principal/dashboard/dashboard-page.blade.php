@@ -629,6 +629,26 @@
                     },
                 };
             },
+            integerAxisMax(data) {
+                const values = Array.isArray(data) ? data.map((value) => Number(value) || 0) : [0];
+                const maxValue = Math.max(...values, 0);
+
+                return Math.max(1, Math.ceil(maxValue));
+            },
+            integerTickAmount(data) {
+                const maxValue = this.integerAxisMax(data);
+
+                return Math.max(1, Math.min(maxValue, 5));
+            },
+            formatWholeNumber(value) {
+                const number = Number(value);
+
+                if (!Number.isFinite(number)) {
+                    return '0';
+                }
+
+                return `${Math.round(number)}`;
+            },
             hasChartData(data) {
                 return Array.isArray(data) && data.some((value) => Number(value) > 0);
             },
@@ -683,6 +703,9 @@
                 if (!this.charts[key]) return;
 
                 const display = this.emptyPieSeries(data, labels);
+                const leftLegendKeys = ['maleSpeed', 'femaleSpeed'];
+                const tooltipUnit = leftLegendKeys.includes(key) ? 'pupil(s)' : 'record(s)';
+
                 this.charts[key].updateOptions({
                     labels: display.labels,
                     colors: display.colors,
@@ -690,7 +713,7 @@
                     noData: this.noDataOptions(),
                     tooltip: {
                         enabled: !display.isEmpty,
-                        y: { formatter: (value) => `${value} record(s)` },
+                        y: { formatter: (value) => `${value} ${tooltipUnit}` },
                     },
                 }, false, false);
                 this.charts[key].updateSeries(display.series);
@@ -699,8 +722,34 @@
                 if (!this.charts[key]) return;
 
                 const map = {
-                    readingLevel: () => this.charts.readingLevel.updateSeries([{ name: this.sexLabel(this.chartFilters.readingLevelSex), data: this.chartData?.readingLevel?.[this.chartFilters.readingLevelSex] || [0, 0, 0] }]),
-                    comprehensionLevel: () => this.charts.comprehensionLevel.updateSeries([{ name: this.sexLabel(this.chartFilters.comprehensionLevelSex), data: this.chartData?.comprehensionLevel?.[this.chartFilters.comprehensionLevelSex] || [0, 0, 0] }]),
+                    readingLevel: () => {
+                        const data = this.chartData?.readingLevel?.[this.chartFilters.readingLevelSex] || [0, 0, 0];
+                        this.charts.readingLevel.updateOptions({
+                            yaxis: {
+                                min: 0,
+                                max: this.integerAxisMax(data),
+                                tickAmount: this.integerTickAmount(data),
+                                forceNiceScale: false,
+                                title: { text: 'Number of Pupils', style: { color: this.chartMutedTextColor(), fontSize: '12px', fontWeight: 700 } },
+                                labels: { formatter: (value) => this.formatWholeNumber(value), style: { colors: this.chartMutedTextColor() } },
+                            },
+                        }, false, false);
+                        this.charts.readingLevel.updateSeries([{ name: this.sexLabel(this.chartFilters.readingLevelSex), data }]);
+                    },
+                    comprehensionLevel: () => {
+                        const data = this.chartData?.comprehensionLevel?.[this.chartFilters.comprehensionLevelSex] || [0, 0, 0];
+                        this.charts.comprehensionLevel.updateOptions({
+                            yaxis: {
+                                min: 0,
+                                max: this.integerAxisMax(data),
+                                tickAmount: this.integerTickAmount(data),
+                                forceNiceScale: false,
+                                title: { text: 'Number of Pupils', style: { color: this.chartMutedTextColor(), fontSize: '12px', fontWeight: 700 } },
+                                labels: { formatter: (value) => this.formatWholeNumber(value), style: { colors: this.chartMutedTextColor() } },
+                            },
+                        }, false, false);
+                        this.charts.comprehensionLevel.updateSeries([{ name: this.sexLabel(this.chartFilters.comprehensionLevelSex), data }]);
+                    },
                     readingRate: () => this.charts.readingRate.updateSeries([{ name: this.sexLabel(this.chartFilters.readingRateSex), data: this.chartData?.readingRate?.[this.chartFilters.readingRateSex] || [0, 0, 0, 0] }]),
                     comprehensionRate: () => this.charts.comprehensionRate.updateSeries([{ name: this.sexLabel(this.chartFilters.comprehensionRateSex), data: this.chartData?.comprehensionRate?.[this.chartFilters.comprehensionRateSex] || [0, 0, 0, 0] }]),
                     filipinoCompletion: () => this.charts.filipinoCompletion.updateSeries(this.chartData?.filipinoCompletion?.[this.chartFilters.filipinoCompletionSex] || [0, 100]),
@@ -726,22 +775,32 @@
                 const element = this.prepareElement(elementId, key);
                 if (!element) return;
 
+                const levelAxisTitle = title === 'Comprehension Level' ? 'Comprehension Levels' : 'Reading Levels';
+
                 const options = {
                     series: [{ name: this.sexLabel(this.chartFilters[key + 'Sex']), data }],
                     colors: this.chartBarColors(),
-                    chart: { ...this.chartBase(), type: 'bar', height: 265, width: '100%' },
+                    chart: { ...this.chartBase(), type: 'bar', height: 285, width: '100%' },
                     plotOptions: { bar: { borderRadius: 7, columnWidth: '44%', distributed: true } },
                     dataLabels: { enabled: false },
                     legend: { show: false },
                     xaxis: {
                         categories: ['Independent', 'Instructional', 'Frustration'],
+                        title: { text: levelAxisTitle, style: { color: this.chartMutedTextColor(), fontSize: '12px', fontWeight: 700 } },
                         axisBorder: { show: false },
                         axisTicks: { show: false },
                         labels: { rotate: 0, trim: true, style: { fontSize: '12px', colors: [this.chartMutedTextColor(), this.chartMutedTextColor(), this.chartMutedTextColor()] } },
                     },
-                    yaxis: { title: { text: 'Records', style: { color: this.chartMutedTextColor() } }, labels: { formatter: (value) => Math.round(value), style: { colors: this.chartMutedTextColor() } } },
+                    yaxis: {
+                        min: 0,
+                        max: this.integerAxisMax(data),
+                        tickAmount: this.integerTickAmount(data),
+                        forceNiceScale: false,
+                        title: { text: 'Number of Pupils', style: { color: this.chartMutedTextColor(), fontSize: '12px', fontWeight: 700 } },
+                        labels: { formatter: (value) => this.formatWholeNumber(value), style: { colors: this.chartMutedTextColor() } },
+                    },
                     grid: { borderColor: this.chartGridColor(), strokeDashArray: 4 },
-                    tooltip: { y: { formatter: (value) => `${value} record(s)` } },
+                    tooltip: { y: { formatter: (value) => `${this.formatWholeNumber(value)} pupil(s)` } },
                     title: { text: title, style: { fontSize: '0px' } },
                     noData: this.noDataOptions(),
                 };
@@ -756,17 +815,24 @@
                 const options = {
                     series: [{ name: this.sexLabel(this.chartFilters[key + 'Sex']), data }],
                     colors: [this.chartLineColor()],
-                    chart: { ...this.chartBase(), type: 'line', height: 275, width: '100%', zoom: { enabled: false } },
+                    chart: { ...this.chartBase(), type: 'line', height: 285, width: '100%', zoom: { enabled: false } },
                     stroke: { curve: 'smooth', width: 4 },
                     markers: { size: 5, colors: [this.chartMarkerFillColor()], strokeColors: this.chartLineColor(), strokeWidth: 3 },
                     dataLabels: { enabled: false },
                     xaxis: {
                         categories: ['First', 'Second', 'Third', 'Fourth'],
+                        title: { text: 'Quarter', style: { color: this.chartMutedTextColor(), fontSize: '12px', fontWeight: 700 } },
                         axisBorder: { show: false },
                         axisTicks: { show: false },
                         labels: { style: { fontSize: '12px', colors: [this.chartMutedTextColor(), this.chartMutedTextColor(), this.chartMutedTextColor(), this.chartMutedTextColor()] } },
                     },
-                    yaxis: { min: 0, max: 100, labels: { formatter: (value) => `${Math.round(value)}%`, style: { colors: this.chartMutedTextColor() } } },
+                    yaxis: {
+                        min: 0,
+                        max: 100,
+                        tickAmount: 5,
+                        title: { text: 'Rate %', style: { color: this.chartMutedTextColor(), fontSize: '12px', fontWeight: 700 } },
+                        labels: { formatter: (value) => `${Math.round(value)}%`, style: { colors: this.chartMutedTextColor() } },
+                    },
                     grid: { borderColor: this.chartGridColor(), strokeDashArray: 4 },
                     tooltip: { y: { formatter: (value) => `${value}%` }, x: { formatter: (value) => `${value} Quarter` } },
                     title: { text: title, style: { fontSize: '0px' } },
@@ -785,11 +851,20 @@
                     series: display.series,
                     labels: display.labels,
                     colors: display.colors,
-                    chart: { ...this.chartBase(), type: 'donut', height: 320, width: '100%' },
-                    legend: { position: 'bottom', fontSize: '12px', labels: { colors: this.chartMutedTextColor() }, itemMargin: { horizontal: 6, vertical: 3 } },
+                    chart: { ...this.chartBase(), type: 'donut', height: 285, width: '100%' },
+                    legend: {
+                        position: 'left',
+                        horizontalAlign: 'center',
+                        floating: false,
+                        fontSize: '12px',
+                        labels: { colors: this.chartMutedTextColor() },
+                        itemMargin: { horizontal: 0, vertical: 5 },
+                        offsetX: 0,
+                        offsetY: 0,
+                    },
                     stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor()] },
                     dataLabels: { enabled: false },
-                    plotOptions: { pie: { donut: { size: '68%', labels: { show: true, name: { fontSize: '12px', color: this.chartMutedTextColor() }, value: { fontSize: '22px', fontWeight: 800, color: this.chartTextColor() }, total: { show: true, label: title, color: this.chartMutedTextColor(), formatter: () => display.isEmpty ? '0' : data.reduce((sum, value) => sum + value, 0) } } } } },
+                    plotOptions: { pie: { customScale: 0.76, donut: { size: '60%', labels: { show: true, name: { fontSize: '12px', color: this.chartMutedTextColor() }, value: { fontSize: '22px', fontWeight: 800, color: this.chartTextColor() }, total: { show: true, label: title, color: this.chartMutedTextColor(), formatter: () => display.isEmpty ? '0' : data.reduce((sum, value) => sum + value, 0) } } } } },
                     noData: this.noDataOptions(),
                 };
 
@@ -820,15 +895,22 @@
                 if (!element) return;
 
                 const display = this.emptyPieSeries(data, labels);
+                const leftLegendKeys = ['maleSpeed', 'femaleSpeed'];
+                const legendPosition = leftLegendKeys.includes(key) ? 'left' : 'bottom';
+                const legendItemMargin = leftLegendKeys.includes(key)
+                    ? { horizontal: 0, vertical: 4 }
+                    : { horizontal: 5, vertical: 2 };
+                const tooltipUnit = leftLegendKeys.includes(key) ? 'pupil(s)' : 'record(s)';
+
                 const options = {
                     series: display.series,
                     labels: display.labels,
                     colors: display.colors,
                     chart: { ...this.chartBase(), type: 'pie', height: 245, width: '100%' },
-                    legend: { position: 'bottom', fontSize: '11px', labels: { colors: this.chartMutedTextColor() }, itemMargin: { horizontal: 5, vertical: 2 } },
+                    legend: { position: legendPosition, horizontalAlign: leftLegendKeys.includes(key) ? 'left' : 'center', fontSize: '11px', labels: { colors: this.chartMutedTextColor() }, itemMargin: legendItemMargin },
                     stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor()] },
                     dataLabels: { enabled: false },
-                    tooltip: { enabled: !display.isEmpty, y: { formatter: (value) => `${value} record(s)` } },
+                    tooltip: { enabled: !display.isEmpty, y: { formatter: (value) => `${value} ${tooltipUnit}` } },
                     noData: this.noDataOptions(),
                 };
 

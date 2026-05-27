@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $report['print_title'] }}</title>
-    <link rel="icon" type="image/png" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
-    <link rel="shortcut icon" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
-
     <style>
         @page {
             size: 13in 8.5in;
@@ -39,26 +36,39 @@
 
         .toolbar a,
         .toolbar button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
             border: 1px solid #d1d5db;
             border-radius: 8px;
             background: #ffffff;
             color: #111827;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            padding: 10px 14px;
+            padding: 0 12px;
             text-decoration: none;
+            transition: background-color .18s ease, border-color .18s ease, color .18s ease;
         }
 
-        .toolbar .primary {
-            background: #111827;
-            color: #ffffff;
-            border-color: #111827;
+        .toolbar a:hover,
+        .toolbar button:hover {
+            background: #f9fafb;
+        }
+
+        .toolbar form {
+            display: inline-flex;
+            margin: 0;
         }
 
         .toolbar button:disabled {
             cursor: not-allowed;
             opacity: 0.55;
+        }
+
+        .toolbar button:disabled:hover {
+            background: #ffffff;
         }
 
         .notice {
@@ -83,6 +93,104 @@
             border-color: #fecaca;
             background: #fef2f2;
             color: #991b1b;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.48);
+            padding: 16px;
+            z-index: 999;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .modal-overlay.is-open {
+            display: flex;
+        }
+
+        .modal-card {
+            width: min(100%, 430px);
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            background: #ffffff;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+            padding: 20px;
+        }
+
+        .modal-title {
+            margin: 0;
+            color: #111827;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .modal-message {
+            margin: 8px 0 0;
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            min-height: 36px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #111827;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 0 12px;
+            transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+        }
+
+        .modal-actions button:hover {
+            background: #f9fafb;
+        }
+
+        .modal-actions .confirm {
+            border-color: #ffca03;
+            background: #ffca03;
+            color: #ffffff;
+        }
+
+        .modal-actions .confirm:hover {
+            border-color: #2c3e50;
+            background: #2c3e50;
+        }
+
+        .toolbar .primary {
+            background: #ffca03;
+            color: #ffffff;
+            border-color: #ffca03;
+        }
+
+        .toolbar .primary:hover {
+            background: #2c3e50;
+            border-color: #2c3e50;
+        }
+
+        .toolbar .submitted {
+            background: #f3f4f6;
+            color: #6b7280;
+            border-color: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        .toolbar .submitted:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            color: #6b7280;
         }
 
         .sheet {
@@ -227,7 +335,8 @@
             }
 
             .toolbar,
-            .notice {
+            .notice,
+            .modal-overlay {
                 display: none !important;
             }
 
@@ -242,30 +351,53 @@
     </style>
 </head>
 <body>
+    @php
+        $reportStatus = strtolower((string) ($report['existing_report_status'] ?? 'draft'));
+        $isSubmitted = in_array($reportStatus, ['submitted', 'reviewed', 'approved'], true);
+        $canSubmit = $report['is_ready'] && ! $isSubmitted;
+        $feedbackType = session('success') ? 'success' : (session('error') ? 'error' : (session('info') ? 'info' : null));
+        $feedbackMessage = session('success') ?: (session('error') ?: session('info'));
+    @endphp
+
     <div class="toolbar">
         <a href="{{ route('evaluator.reports', ['year_id' => $report['year_id']]) }}">Back to Reports</a>
         <button type="button" onclick="window.print()">Print / Save as PDF</button>
-        <form method="POST" action="{{ route('evaluator.reports.submit', ['assignmentId' => $report['assignment_id'], 'language' => $report['language']]) }}">
+        <form id="report-submit-form" method="POST" action="{{ route('evaluator.reports.submit', ['assignmentId' => $report['assignment_id'], 'language' => $report['language']]) }}" onsubmit="return openSubmitConfirm(event)">
             @csrf
-            <button type="submit" class="primary" @disabled(! $report['is_ready'])>
-                Submit to Principal
+            <button type="submit" class="{{ $isSubmitted ? 'submitted' : 'primary' }}" @disabled(! $canSubmit)>
+                {{ $isSubmitted ? 'Submitted' : 'Submit to Principal' }}
             </button>
         </form>
     </div>
-
-    @if (session('success'))
-        <div class="notice success">{{ session('success') }}</div>
-    @endif
-
-    @if (session('error'))
-        <div class="notice error">{{ session('error') }}</div>
-    @endif
 
     @unless ($report['is_ready'])
         <div class="notice">
             This {{ $report['language_label'] }} report is for preview only. {{ $report['summary']['missing'] }} pupil(s) still need an assessment record before submission.
         </div>
     @endunless
+
+    <div id="submit-confirm-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title">
+        <div class="modal-card">
+            <h2 id="submit-confirm-title" class="modal-title">Submit {{ $report['language_label'] }} Report?</h2>
+            <p class="modal-message">Please confirm that this class report is complete and ready to submit to the principal.</p>
+            <div class="modal-actions">
+                <button type="button" onclick="closeSubmitConfirm()">Cancel</button>
+                <button type="button" class="confirm" onclick="submitConfirmed()">Yes, Submit</button>
+            </div>
+        </div>
+    </div>
+
+    @if ($feedbackMessage)
+        <div id="feedback-modal" class="modal-overlay is-open" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+            <div class="modal-card">
+                <h2 id="feedback-title" class="modal-title">{{ $feedbackType === 'error' ? 'Action Needed' : 'Class Report Updated' }}</h2>
+                <p class="modal-message">{{ $feedbackMessage }}</p>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeFeedbackModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <main class="sheet">
         <header class="header">
@@ -362,5 +494,40 @@
             </div>
         </footer>
     </main>
+
+    <script>
+        let submitReady = false;
+
+        function openSubmitConfirm(event) {
+            if (submitReady) {
+                return true;
+            }
+
+            event.preventDefault();
+            document.getElementById('submit-confirm-modal')?.classList.add('is-open');
+            return false;
+        }
+
+        function closeSubmitConfirm() {
+            document.getElementById('submit-confirm-modal')?.classList.remove('is-open');
+        }
+
+        function submitConfirmed() {
+            submitReady = true;
+            closeSubmitConfirm();
+            document.getElementById('report-submit-form')?.submit();
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedback-modal')?.classList.remove('is-open');
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeSubmitConfirm();
+                closeFeedbackModal();
+            }
+        });
+    </script>
 </body>
 </html>

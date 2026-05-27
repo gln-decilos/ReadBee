@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Evaluator;
 use App\Helpers\EvaluatorMenuHelper;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class EvaluatorClassReportController extends Controller
@@ -86,6 +87,13 @@ class EvaluatorClassReportController extends Controller
                 'assignmentId' => $assignmentId,
                 'language' => $language,
             ])->with('error', 'This report cannot be submitted yet. Please complete all pupil assessments for ' . ucfirst($language) . '.');
+        }
+
+        if (in_array(strtolower((string) ($report['existing_report_status'] ?? 'draft')), ['submitted', 'reviewed', 'approved'], true)) {
+            return redirect()->route('evaluator.reports.show', [
+                'assignmentId' => $assignmentId,
+                'language' => $language,
+            ])->with('info', ucfirst($language) . ' report has already been submitted to the principal.');
         }
 
         $classReportId = $this->saveClassReport($report, $evaluatorId);
@@ -218,12 +226,15 @@ class EvaluatorClassReportController extends Controller
         $district = $this->fetchSingleRowById('districts', 'district_id', $school['district_id'] ?? null, 'district_id,district_name,province,office_address,contact,email');
         $quarter = $this->fetchSingleRowById('quarter', 'quarter_id', $assignment['quarter_id'] ?? null, 'quarter_id,year_id,quarter_number,quarter_name,start_date,end_date');
         $schoolYear = $this->fetchSingleRowById('school_year', 'year_id', $assignment['year_id'] ?? null, 'year_id,start_date,end_date,created_at');
+        $evaluatorProfile = $this->fetchSingleRowById('profiles', 'id', $evaluatorId, 'id,full_name,title,position,email');
         $pupils = $this->fetchAssignedPupils($section['section_id']);
         $records = $this->fetchFormattedRecords($evaluatorId, $assignment, collect($pupils)->pluck('pupil_id')->filter()->values()->all());
 
         $gradeNumber = $grade['grade_number'] ?? null;
         $sectionName = $section['section_name'] ?? 'Section';
-        $districtName = $district['district_name'] ?? 'NASUGBU WEST SUB-OFFICE';
+        $districtName = $district['district_name'] ?? 'DISTRICT I';
+        $divisionProvince = trim(str_replace(' Province', '', (string) ($district['province'] ?? 'Batangas')));
+        $divisionProvince = $divisionProvince !== '' ? $divisionProvince : 'Batangas';
 
         return [
             'assignment_id' => $assignment['assignment_id'] ?? null,
@@ -239,8 +250,10 @@ class EvaluatorClassReportController extends Controller
             'school_contact' => $school['contact'] ?? ($district['contact'] ?? ''),
             'school_email' => $school['email'] ?? ($district['email'] ?? ''),
             'district_name' => strtoupper($districtName),
-            'division_label' => 'Schools Division of ' . ($district['province'] ?? 'Batangas Province'),
+            'division_label' => 'Schools Division of ' . $divisionProvince,
             'region_label' => 'Region IV-CALABARZON',
+            'evaluator_name' => $evaluatorProfile['full_name'] ?? 'Evaluator',
+            'evaluator_title' => $evaluatorProfile['title'] ?? ($evaluatorProfile['position'] ?? null),
             'grade_number' => $gradeNumber,
             'grade_label' => $gradeNumber ? 'Grade ' . $gradeNumber : 'Grade',
             'section_name' => $sectionName,
@@ -606,19 +619,23 @@ class EvaluatorClassReportController extends Controller
             return null;
         }
 
-        $response = Http::withHeaders($this->supabaseHeaders())
-            ->get($this->supabaseUrl() . '/rest/v1/' . $table, [
-                'select' => $select,
-                $idField => 'eq.' . $id,
-                'limit' => 1,
-            ]);
+        $cacheKey = 'evaluator_report_single:' . md5($table . '|' . $idField . '|' . (string) $id . '|' . $select);
 
-        if (! $response->successful()) {
-            report("Failed to fetch {$table} row for evaluator report: " . $response->body());
-            return null;
-        }
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($table, $idField, $id, $select) {
+            $response = Http::withHeaders($this->supabaseHeaders())
+                ->get($this->supabaseUrl() . '/rest/v1/' . $table, [
+                    'select' => $select,
+                    $idField => 'eq.' . $id,
+                    'limit' => 1,
+                ]);
 
-        return $response->json()[0] ?? null;
+            if (! $response->successful()) {
+                report("Failed to fetch {$table} row for evaluator report: " . $response->body());
+                return null;
+            }
+
+            return $response->json()[0] ?? null;
+        });
     }
 
     private function fetchRowsByIds(string $table, string $idField, array $ids, string $select): array
@@ -629,18 +646,22 @@ class EvaluatorClassReportController extends Controller
             return [];
         }
 
-        $response = Http::withHeaders($this->supabaseHeaders())
-            ->get($this->supabaseUrl() . '/rest/v1/' . $table, [
-                'select' => $select,
-                $idField => 'in.(' . $this->postgrestInList($ids) . ')',
-            ]);
+        $cacheKey = 'evaluator_report_many:' . md5($table . '|' . $idField . '|' . implode(',', $ids) . '|' . $select);
 
-        if (! $response->successful()) {
-            report("Failed to fetch {$table} rows for evaluator report: " . $response->body());
-            return [];
-        }
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($table, $idField, $ids, $select) {
+            $response = Http::withHeaders($this->supabaseHeaders())
+                ->get($this->supabaseUrl() . '/rest/v1/' . $table, [
+                    'select' => $select,
+                    $idField => 'in.(' . $this->postgrestInList($ids) . ')',
+                ]);
 
-        return $response->json();
+            if (! $response->successful()) {
+                report("Failed to fetch {$table} rows for evaluator report: " . $response->body());
+                return [];
+            }
+
+            return $response->json();
+        });
     }
 
     private function recordBelongsToAssignment(array $record, array $assignment, array $assignmentPupilIds): bool

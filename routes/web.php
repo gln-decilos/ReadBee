@@ -23,6 +23,7 @@ use App\Http\Controllers\Evaluator\EvaluatorAssignmentController;
 use App\Http\Controllers\Evaluator\EvaluatorReadingMaterialController;
 use App\Http\Controllers\Evaluator\EvaluatorPupilsController;
 use App\Http\Controllers\Evaluator\EvaluatorProgressMonitoringController;
+use App\Http\Controllers\Evaluator\EvaluatorDashboardController;
 use App\Http\Controllers\Evaluator\EvaluatorClassReportController;
 
 // landing page
@@ -434,7 +435,7 @@ Route::prefix('principal')->group(function () {
 
 
 Route::prefix('evaluator')->group(function () {
-    Route::get('dashboard', [EvaluatorController::class, 'dashboard'])
+    Route::get('dashboard', [EvaluatorDashboardController::class, 'index'])
         ->name('evaluator.dashboard');
 
     Route::get('profile', [EvaluatorController::class, 'profile'])
@@ -504,6 +505,6 @@ Route::prefix('evaluator')->group(function () {
 });
 
 // Backwards-compatible teacher dashboard route for existing teacher redirects.
-Route::get('/teacher/dashboard', [EvaluatorController::class, 'dashboard'])
+Route::get('/teacher/dashboard', [EvaluatorDashboardController::class, 'index'])
     ->name('teacher.dashboard');
 

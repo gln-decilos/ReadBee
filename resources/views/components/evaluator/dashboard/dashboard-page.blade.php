@@ -15,6 +15,39 @@
         --readbee-brand-hover: #2c3e50;
     }
 
+
+    .readbee-evaluator-dashboard,
+    .readbee-evaluator-dashboard .readbee-dashboard-hero,
+    .readbee-evaluator-dashboard .readbee-chart-box,
+    .readbee-evaluator-dashboard .readbee-stat-card,
+    .readbee-evaluator-dashboard .readbee-dashboard-mini-card,
+    .readbee-evaluator-dashboard .readbee-dashboard-pill,
+    .readbee-evaluator-dashboard select,
+    .readbee-evaluator-dashboard button,
+    .readbee-filter-popover {
+        transition-property: background, background-color, border-color, color, box-shadow, opacity, transform;
+        transition-duration: 280ms;
+        transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .readbee-evaluator-dashboard .apexcharts-canvas,
+    .readbee-evaluator-dashboard .apexcharts-canvas svg,
+    .readbee-evaluator-dashboard .apexcharts-canvas svg * {
+        transition-property: fill, stroke, color, opacity;
+        transition-duration: 280ms;
+        transition-timing-function: cubic-bezier(.4, 0, .2, 1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .readbee-evaluator-dashboard,
+        .readbee-evaluator-dashboard *,
+        .readbee-filter-popover,
+        .readbee-filter-popover * {
+            transition-duration: 1ms !important;
+            animation-duration: 1ms !important;
+        }
+    }
+
     .readbee-dashboard-hero {
         position: relative;
         overflow: hidden;
@@ -182,6 +215,22 @@
         color: #d1d5db !important;
     }
 
+    .readbee-chart-box .apexcharts-pie-series path,
+    .readbee-chart-box .apexcharts-radialbar-track path,
+    .readbee-chart-box .apexcharts-radialbar-area path {
+        stroke: #ffffff !important;
+    }
+
+    .dark .readbee-chart-box .apexcharts-gridline {
+        stroke: rgba(255, 255, 255, .10) !important;
+    }
+
+    .dark .readbee-chart-box .apexcharts-pie-series path,
+    .dark .readbee-chart-box .apexcharts-radialbar-track path,
+    .dark .readbee-chart-box .apexcharts-radialbar-area path {
+        stroke: #101828 !important;
+    }
+
     .readbee-chart-box .apexcharts-nodata,
     .readbee-chart-box .apexcharts-nodata text {
         color: #475467 !important;
@@ -192,6 +241,48 @@
     .dark .readbee-chart-box .apexcharts-nodata text {
         color: #d1d5db !important;
         fill: #d1d5db !important;
+    }
+
+
+
+    /* Consistent theme colors for ApexCharts no-data text only. */
+    .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-nodata,
+    .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-nodata *,
+    .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-no-data-text,
+    .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-datalabel-total-label,
+    .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-legend-text {
+        color: #475467 !important;
+        fill: #475467 !important;
+    }
+
+    .dark .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-nodata,
+    .dark .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-nodata *,
+    .dark .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-no-data-text,
+    .dark .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-datalabel-total-label,
+    .dark .readbee-evaluator-dashboard .readbee-chart-box .apexcharts-legend-text {
+        color: #d1d5db !important;
+        fill: #d1d5db !important;
+    }
+
+    /* Line charts only: keep the line visible in both light and dark mode, even after switching themes. */
+    .readbee-evaluator-dashboard #evaluatorReadingRateChart .apexcharts-series path[stroke],
+    .readbee-evaluator-dashboard #evaluatorReadingRateChart .apexcharts-line-series path,
+    .readbee-evaluator-dashboard #evaluatorReadingRateChart path.apexcharts-line,
+    .readbee-evaluator-dashboard #evaluatorComprehensionRateChart .apexcharts-series path[stroke],
+    .readbee-evaluator-dashboard #evaluatorComprehensionRateChart .apexcharts-line-series path,
+    .readbee-evaluator-dashboard #evaluatorComprehensionRateChart path.apexcharts-line {
+        stroke: #1f2937 !important;
+        opacity: 1 !important;
+    }
+
+    .dark .readbee-evaluator-dashboard #evaluatorReadingRateChart .apexcharts-series path[stroke],
+    .dark .readbee-evaluator-dashboard #evaluatorReadingRateChart .apexcharts-line-series path,
+    .dark .readbee-evaluator-dashboard #evaluatorReadingRateChart path.apexcharts-line,
+    .dark .readbee-evaluator-dashboard #evaluatorComprehensionRateChart .apexcharts-series path[stroke],
+    .dark .readbee-evaluator-dashboard #evaluatorComprehensionRateChart .apexcharts-line-series path,
+    .dark .readbee-evaluator-dashboard #evaluatorComprehensionRateChart path.apexcharts-line {
+        stroke: #f2c94c !important;
+        opacity: 1 !important;
     }
 
     @media (max-width: 768px) {
@@ -255,7 +346,6 @@
             },
             charts: {},
             chartResizeTimer: null,
-            themeObserver: null,
             init() {
                 this.ensureFilterSelections();
                 this.onDashboardViewportChange = () => {
@@ -266,10 +356,6 @@
                 window.addEventListener('resize', this.onDashboardViewportChange);
                 window.addEventListener('scroll', this.onDashboardViewportChange, true);
 
-                this.themeObserver = new MutationObserver(() => {
-                    this.refreshChartTheme();
-                });
-                this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
                 this.waitForCharts(() => {
                     this.renderAllCharts();
@@ -279,7 +365,6 @@
             destroy() {
                 window.removeEventListener('resize', this.onDashboardViewportChange);
                 window.removeEventListener('scroll', this.onDashboardViewportChange, true);
-                this.themeObserver?.disconnect?.();
             },
             toggleFilterPanel() {
                 this.filterPanelOpen = !this.filterPanelOpen;
@@ -543,37 +628,14 @@
             chartLineColor() {
                 return this.isDarkMode() ? palette.yellow : palette.charcoal;
             },
-            chartSurfaceColor(element = null) {
-                const fallback = this.isDarkMode() ? '#171e2b' : '#ffffff';
-                const chartBox = element?.closest?.('.readbee-chart-box');
-
-                if (!chartBox) {
-                    return fallback;
-                }
-
-                const background = window.getComputedStyle(chartBox).backgroundColor;
-
-                if (!background || background === 'transparent' || background === 'rgba(0, 0, 0, 0)') {
-                    return fallback;
-                }
-
-                if (this.isDarkMode() && background.startsWith('rgba')) {
-                    const alpha = Number(background.replace(/^rgba\(|\)$/g, '').split(',').map((part) => part.trim())[3] || 1);
-                    if (alpha < 0.2) {
-                        return fallback;
-                    }
-                }
-
-                return background;
-            },
-            chartStrokeColor(element = null) {
-                return this.chartSurfaceColor(element);
+            chartStrokeColor() {
+                return this.isDarkMode() ? '#101828' : '#ffffff';
             },
             chartStrokeWidth() {
                 return this.isDarkMode() ? 2 : 3;
             },
-            chartMarkerFillColor(element = null) {
-                return this.isDarkMode() ? this.chartSurfaceColor(element) : palette.yellow;
+            chartMarkerFillColor() {
+                return this.isDarkMode() ? '#111827' : palette.yellow;
             },
             chartNoDataColor() {
                 return this.isDarkMode() ? '#d1d5db' : palette.slate;
@@ -638,57 +700,6 @@
                     console.warn('Dashboard chart update skipped, re-rendering charts instead.', error);
                     this.renderAllCharts();
                 }
-            },
-            refreshChartTheme() {
-                if (!Object.keys(this.charts || {}).length) return;
-
-                const pieLikeKeys = ['miscueType', 'maleSpeed', 'femaleSpeed', 'comprehensionStatus'];
-                const progressKeys = ['filipinoCompletion', 'englishCompletion'];
-                const lineKeys = ['readingRate', 'comprehensionRate'];
-                const barKeys = ['readingLevel', 'comprehensionLevel'];
-
-                pieLikeKeys.forEach((key) => {
-                    const chart = this.charts[key];
-                    if (!chart) return;
-
-                    chart.updateOptions({
-                        stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor(chart.el)] },
-                        noData: this.noDataOptions(),
-                        legend: { labels: { colors: this.chartMutedTextColor() } },
-                    }, false, true);
-                });
-
-                progressKeys.forEach((key) => {
-                    const chart = this.charts[key];
-                    if (!chart) return;
-
-                    chart.updateOptions({
-                        stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor(chart.el)] },
-                        noData: this.noDataOptions(),
-                        legend: { labels: { colors: this.chartMutedTextColor() } },
-                    }, false, true);
-                });
-
-                lineKeys.forEach((key) => {
-                    const chart = this.charts[key];
-                    if (!chart) return;
-
-                    chart.updateOptions({
-                        markers: { colors: [this.chartMarkerFillColor(chart.el)], strokeColors: this.chartStrokeColor(chart.el) },
-                        noData: this.noDataOptions(),
-                        grid: { borderColor: this.chartGridColor(), strokeDashArray: 4 },
-                    }, false, true);
-                });
-
-                barKeys.forEach((key) => {
-                    const chart = this.charts[key];
-                    if (!chart) return;
-
-                    chart.updateOptions({
-                        noData: this.noDataOptions(),
-                        grid: { borderColor: this.chartGridColor(), strokeDashArray: 4 },
-                    }, false, true);
-                });
             },
             updatePieLikeChart(key, data, labels) {
                 if (!this.charts[key]) return;
@@ -769,7 +780,7 @@
                     colors: [this.chartLineColor()],
                     chart: { ...this.chartBase(), type: 'line', height: 275, width: '100%', zoom: { enabled: false } },
                     stroke: { curve: 'smooth', width: 4 },
-                    markers: { size: 5, colors: [this.chartMarkerFillColor(element)], strokeColors: this.chartStrokeColor(element), strokeWidth: 3 },
+                    markers: { size: 5, colors: [this.chartMarkerFillColor()], strokeColors: this.chartLineColor(), strokeWidth: 3 },
                     dataLabels: { enabled: false },
                     xaxis: {
                         categories: ['First', 'Second', 'Third', 'Fourth'],

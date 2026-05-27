@@ -1,12 +1,12 @@
 @props([
     'dashboardData' => [],
-    'dashboardUrl' => route('evaluator.dashboard'),
+    'dashboardUrl' => route('principal.dashboard'),
 ])
 
 <style>
     [x-cloak] { display: none !important; }
 
-    .readbee-evaluator-dashboard {
+    .readbee-principal-dashboard {
         --readbee-yellow: #f2c94c;
         --readbee-black: #111827;
         --readbee-charcoal: #1f2937;
@@ -16,31 +16,31 @@
     }
 
 
-    .readbee-evaluator-dashboard,
-    .readbee-evaluator-dashboard .readbee-dashboard-hero,
-    .readbee-evaluator-dashboard .readbee-chart-box,
-    .readbee-evaluator-dashboard .readbee-stat-card,
-    .readbee-evaluator-dashboard .readbee-dashboard-mini-card,
-    .readbee-evaluator-dashboard .readbee-dashboard-pill,
-    .readbee-evaluator-dashboard select,
-    .readbee-evaluator-dashboard button,
+    .readbee-principal-dashboard,
+    .readbee-principal-dashboard .readbee-dashboard-hero,
+    .readbee-principal-dashboard .readbee-chart-box,
+    .readbee-principal-dashboard .readbee-stat-card,
+    .readbee-principal-dashboard .readbee-dashboard-mini-card,
+    .readbee-principal-dashboard .readbee-dashboard-pill,
+    .readbee-principal-dashboard select,
+    .readbee-principal-dashboard button,
     .readbee-filter-popover {
         transition-property: background, background-color, border-color, color, box-shadow, opacity, transform;
         transition-duration: 280ms;
         transition-timing-function: cubic-bezier(.4, 0, .2, 1);
     }
 
-    .readbee-evaluator-dashboard .apexcharts-canvas,
-    .readbee-evaluator-dashboard .apexcharts-canvas svg,
-    .readbee-evaluator-dashboard .apexcharts-canvas svg * {
+    .readbee-principal-dashboard .apexcharts-canvas,
+    .readbee-principal-dashboard .apexcharts-canvas svg,
+    .readbee-principal-dashboard .apexcharts-canvas svg * {
         transition-property: fill, stroke, color, opacity;
         transition-duration: 280ms;
         transition-timing-function: cubic-bezier(.4, 0, .2, 1);
     }
 
     @media (prefers-reduced-motion: reduce) {
-        .readbee-evaluator-dashboard,
-        .readbee-evaluator-dashboard *,
+        .readbee-principal-dashboard,
+        .readbee-principal-dashboard *,
         .readbee-filter-popover,
         .readbee-filter-popover * {
             transition-duration: 1ms !important;
@@ -163,6 +163,7 @@
         border-color: rgba(242, 201, 76, .25);
     }
 
+
     .readbee-filter-popover {
         position: fixed;
         z-index: 99999;
@@ -215,6 +216,7 @@
         color: #d1d5db !important;
     }
 
+
     .readbee-chart-box .apexcharts-pie-series path,
     .readbee-chart-box .apexcharts-radialbar-track path,
     .readbee-chart-box .apexcharts-radialbar-area path {
@@ -232,51 +234,37 @@
     }
 
     .readbee-chart-box .apexcharts-nodata,
-    .readbee-chart-box .apexcharts-nodata text {
+    .readbee-chart-box .apexcharts-nodata text,
+    .readbee-chart-box .apexcharts-no-data-text {
         color: #475467 !important;
         fill: #475467 !important;
     }
 
     .dark .readbee-chart-box .apexcharts-nodata,
-    .dark .readbee-chart-box .apexcharts-nodata text {
+    .dark .readbee-chart-box .apexcharts-nodata text,
+    .dark .readbee-chart-box .apexcharts-no-data-text {
         color: #d1d5db !important;
         fill: #d1d5db !important;
     }
 
-
-    /* Keep ApexCharts theme colors consistent after switching light/dark mode. */
-    .readbee-evaluator-dashboard #evaluatorReadingRateChart .apexcharts-series path,
-    .readbee-evaluator-dashboard #evaluatorComprehensionRateChart .apexcharts-series path {
+    .readbee-principal-dashboard #principalReadingRateChart .apexcharts-series path[stroke],
+    .readbee-principal-dashboard #principalReadingRateChart .apexcharts-line-series path,
+    .readbee-principal-dashboard #principalReadingRateChart path.apexcharts-line,
+    .readbee-principal-dashboard #principalComprehensionRateChart .apexcharts-series path[stroke],
+    .readbee-principal-dashboard #principalComprehensionRateChart .apexcharts-line-series path,
+    .readbee-principal-dashboard #principalComprehensionRateChart path.apexcharts-line {
         stroke: #1f2937 !important;
+        opacity: 1 !important;
     }
 
-    .dark .readbee-evaluator-dashboard #evaluatorReadingRateChart .apexcharts-series path,
-    .dark .readbee-evaluator-dashboard #evaluatorComprehensionRateChart .apexcharts-series path {
+    .dark .readbee-principal-dashboard #principalReadingRateChart .apexcharts-series path[stroke],
+    .dark .readbee-principal-dashboard #principalReadingRateChart .apexcharts-line-series path,
+    .dark .readbee-principal-dashboard #principalReadingRateChart path.apexcharts-line,
+    .dark .readbee-principal-dashboard #principalComprehensionRateChart .apexcharts-series path[stroke],
+    .dark .readbee-principal-dashboard #principalComprehensionRateChart .apexcharts-line-series path,
+    .dark .readbee-principal-dashboard #principalComprehensionRateChart path.apexcharts-line {
         stroke: #f2c94c !important;
-    }
-
-    .readbee-evaluator-dashboard .apexcharts-no-data-text,
-    .readbee-evaluator-dashboard .apexcharts-nodata,
-    .readbee-evaluator-dashboard .apexcharts-nodata text,
-    .readbee-evaluator-dashboard .apexcharts-text.apexcharts-no-data-text {
-        color: #475467 !important;
-        fill: #475467 !important;
-    }
-
-    .dark .readbee-evaluator-dashboard .apexcharts-no-data-text,
-    .dark .readbee-evaluator-dashboard .apexcharts-nodata,
-    .dark .readbee-evaluator-dashboard .apexcharts-nodata text,
-    .dark .readbee-evaluator-dashboard .apexcharts-text.apexcharts-no-data-text {
-        color: #d1d5db !important;
-        fill: #d1d5db !important;
-    }
-
-
-    .readbee-evaluator-dashboard .apexcharts-datalabel-label,
-    .readbee-evaluator-dashboard .apexcharts-datalabel-value,
-    .readbee-evaluator-dashboard .apexcharts-datalabel-total-label,
-    .readbee-evaluator-dashboard .apexcharts-datalabel-total-value {
-        transition: fill 280ms cubic-bezier(.4, 0, .2, 1), color 280ms cubic-bezier(.4, 0, .2, 1);
+        opacity: 1 !important;
     }
 
     @media (max-width: 768px) {
@@ -287,7 +275,7 @@
 </style>
 
 <script>
-    window.evaluatorDashboardPage = function(initialState, dashboardUrl) {
+    window.principalDashboardPage = function(initialState, dashboardUrl) {
         const palette = {
             yellow: '#f2c94c',
             black: '#111827',
@@ -340,8 +328,6 @@
             },
             charts: {},
             chartResizeTimer: null,
-            themeObserver: null,
-            themeSyncTimer: null,
             init() {
                 this.ensureFilterSelections();
                 this.onDashboardViewportChange = () => {
@@ -352,9 +338,6 @@
                 window.addEventListener('resize', this.onDashboardViewportChange);
                 window.addEventListener('scroll', this.onDashboardViewportChange, true);
 
-                this.themeObserver = new MutationObserver(() => this.scheduleThemeSync());
-                this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
                 this.waitForCharts(() => {
                     this.renderAllCharts();
                     this.queueChartResize();
@@ -363,13 +346,6 @@
             destroy() {
                 window.removeEventListener('resize', this.onDashboardViewportChange);
                 window.removeEventListener('scroll', this.onDashboardViewportChange, true);
-
-                if (this.themeObserver) {
-                    this.themeObserver.disconnect();
-                    this.themeObserver = null;
-                }
-
-                clearTimeout(this.themeSyncTimer);
             },
             toggleFilterPanel() {
                 this.filterPanelOpen = !this.filterPanelOpen;
@@ -611,98 +587,36 @@
                             console.warn('Chart resize skipped:', error);
                         }
                     });
-
-                    this.applyThemeDomFixes();
                 }, 90);
             },
-            scheduleThemeSync() {
-                clearTimeout(this.themeSyncTimer);
-                this.themeSyncTimer = setTimeout(() => this.syncThemeSensitiveCharts(), 40);
-            },
-            lineChartThemeOptions() {
-                const lineColor = this.chartLineColor();
-                const mutedText = this.chartMutedTextColor();
-
-                return {
-                    colors: [lineColor],
-                    foreColor: mutedText,
-                    markers: {
-                        colors: [this.chartMarkerFillColor()],
-                        strokeColors: lineColor,
-                        strokeWidth: 3,
-                    },
-                    xaxis: {
-                        labels: {
-                            style: {
-                                colors: [mutedText, mutedText, mutedText, mutedText],
-                            },
-                        },
-                    },
-                    yaxis: {
-                        labels: {
-                            style: { colors: mutedText },
-                        },
-                    },
-                    grid: { borderColor: this.chartGridColor(), strokeDashArray: 4 },
-                    noData: this.noDataOptions(),
-                };
-            },
-            syncThemeSensitiveCharts() {
-                if (!window.ApexCharts || !Object.keys(this.charts || {}).length) {
-                    return;
-                }
-
-                this.$nextTick(() => {
-                    this.renderAllCharts();
-                    this.applyThemeDomFixes();
-                });
-            },
-            applyThemeDomFixes() {
-                const lineColor = this.chartLineColor();
-                const noDataColor = this.chartNoDataColor();
-
-                ['#evaluatorReadingRateChart', '#evaluatorComprehensionRateChart'].forEach((selector) => {
-                    document.querySelectorAll(`${selector} .apexcharts-series path`).forEach((path) => {
-                        path.style.stroke = lineColor;
-                    });
-                });
-
-                document.querySelectorAll('.readbee-evaluator-dashboard .apexcharts-no-data-text, .readbee-evaluator-dashboard .apexcharts-nodata, .readbee-evaluator-dashboard .apexcharts-nodata text, .readbee-evaluator-dashboard .apexcharts-text.apexcharts-no-data-text').forEach((node) => {
-                    node.style.color = noDataColor;
-                    node.style.fill = noDataColor;
-                });
-            },
-            isDarkMode() {
-                return document.documentElement.classList.contains('dark');
-            },
             chartTextColor() {
-                return this.isDarkMode() ? '#f9fafb' : palette.black;
+                return document.documentElement.classList.contains('dark') ? '#f9fafb' : palette.black;
             },
             chartMutedTextColor() {
-                return this.isDarkMode() ? '#d1d5db' : palette.slate;
+                return document.documentElement.classList.contains('dark') ? '#d1d5db' : palette.slate;
             },
             chartGridColor() {
-                return this.isDarkMode() ? 'rgba(255,255,255,.10)' : palette.graySoft;
+                return document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,.10)' : palette.graySoft;
             },
             chartBarColors() {
-                return this.isDarkMode()
+                return document.documentElement.classList.contains('dark')
                     ? [palette.yellow, '#9ca3af', '#6b7280']
                     : [palette.yellow, palette.mutedBlue, palette.gray];
             },
             chartLineColor() {
-                return this.isDarkMode() ? palette.yellow : palette.charcoal;
+                return document.documentElement.classList.contains('dark') ? palette.yellow : palette.charcoal;
             },
             chartStrokeColor() {
-                return this.isDarkMode() ? '#101828' : '#ffffff';
+                return document.documentElement.classList.contains('dark') ? '#101828' : '#ffffff';
             },
             chartStrokeWidth() {
-                return this.isDarkMode() ? 2 : 3;
+                return document.documentElement.classList.contains('dark') ? 2 : 3;
             },
             chartMarkerFillColor() {
-                return this.isDarkMode() ? '#111827' : palette.yellow;
+                return document.documentElement.classList.contains('dark') ? '#111827' : palette.yellow;
             },
             chartNoDataColor() {
-                return this.isDarkMode() ? '#d1d5db' : palette.slate;
+                return document.documentElement.classList.contains('dark') ? '#d1d5db' : palette.slate;
             },
             noDataOptions() {
                 return {
@@ -726,21 +640,21 @@
                 return {
                     series: [1],
                     labels: ['No data yet'],
-                    colors: [this.isDarkMode() ? '#374151' : '#e5e7eb'],
+                    colors: [document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'],
                     isEmpty: true,
                 };
             },
             renderAllCharts() {
-                this.renderBarChart('evaluatorReadingLevelChart', 'readingLevel', this.chartData?.readingLevel?.[this.chartFilters.readingLevelSex] || [0, 0, 0], 'Reading Level');
-                this.renderBarChart('evaluatorComprehensionLevelChart', 'comprehensionLevel', this.chartData?.comprehensionLevel?.[this.chartFilters.comprehensionLevelSex] || [0, 0, 0], 'Comprehension Level');
-                this.renderLineChart('evaluatorReadingRateChart', 'readingRate', this.chartData?.readingRate?.[this.chartFilters.readingRateSex] || [0, 0, 0, 0], 'Reading Rate');
-                this.renderLineChart('evaluatorComprehensionRateChart', 'comprehensionRate', this.chartData?.comprehensionRate?.[this.chartFilters.comprehensionRateSex] || [0, 0, 0, 0], 'Comprehension Rate');
-                this.renderDonutChart('evaluatorMiscueTypeChart', 'miscueType', this.chartData?.miscueDistribution || [0, 0, 0, 0, 0, 0, 0], ['Mispronunciation', 'Omission', 'Substitution', 'Insertion', 'Transposition', 'Reversal', 'Repetition'], 'Miscues');
-                this.renderProgressDonut('evaluatorFilipinoCompletionChart', 'filipinoCompletion', this.chartData?.filipinoCompletion?.[this.chartFilters.filipinoCompletionSex] || [0, 100], 'Filipino');
-                this.renderProgressDonut('evaluatorEnglishCompletionChart', 'englishCompletion', this.chartData?.englishCompletion?.[this.chartFilters.englishCompletionSex] || [0, 100], 'English');
-                this.renderPieChart('evaluatorMaleSpeedChart', 'maleSpeed', this.chartData?.speedMale || [0, 0, 0, 0, 0], ['Fast', 'Average', 'Slow', 'Struggling', 'Non-Reader']);
-                this.renderPieChart('evaluatorFemaleSpeedChart', 'femaleSpeed', this.chartData?.speedFemale || [0, 0, 0, 0, 0], ['Fast', 'Average', 'Slow', 'Struggling', 'Non-Reader']);
-                this.renderPieChart('evaluatorComprehensionStatusChart', 'comprehensionStatus', this.chartData?.comprehensionStatus || [0, 0], ['With Comprehension', 'Without Comprehension']);
+                this.renderBarChart('principalReadingLevelChart', 'readingLevel', this.chartData?.readingLevel?.[this.chartFilters.readingLevelSex] || [0, 0, 0], 'Reading Level');
+                this.renderBarChart('principalComprehensionLevelChart', 'comprehensionLevel', this.chartData?.comprehensionLevel?.[this.chartFilters.comprehensionLevelSex] || [0, 0, 0], 'Comprehension Level');
+                this.renderLineChart('principalReadingRateChart', 'readingRate', this.chartData?.readingRate?.[this.chartFilters.readingRateSex] || [0, 0, 0, 0], 'Reading Rate');
+                this.renderLineChart('principalComprehensionRateChart', 'comprehensionRate', this.chartData?.comprehensionRate?.[this.chartFilters.comprehensionRateSex] || [0, 0, 0, 0], 'Comprehension Rate');
+                this.renderDonutChart('principalMiscueTypeChart', 'miscueType', this.chartData?.miscueDistribution || [0, 0, 0, 0, 0, 0, 0], ['Mispronunciation', 'Omission', 'Substitution', 'Insertion', 'Transposition', 'Reversal', 'Repetition'], 'Miscues');
+                this.renderProgressDonut('principalFilipinoCompletionChart', 'filipinoCompletion', this.chartData?.filipinoCompletion?.[this.chartFilters.filipinoCompletionSex] || [0, 100], 'Filipino');
+                this.renderProgressDonut('principalEnglishCompletionChart', 'englishCompletion', this.chartData?.englishCompletion?.[this.chartFilters.englishCompletionSex] || [0, 100], 'English');
+                this.renderPieChart('principalMaleSpeedChart', 'maleSpeed', this.chartData?.speedMale || [0, 0, 0, 0, 0], ['Fast', 'Average', 'Slow', 'Struggling', 'Non-Reader']);
+                this.renderPieChart('principalFemaleSpeedChart', 'femaleSpeed', this.chartData?.speedFemale || [0, 0, 0, 0, 0], ['Fast', 'Average', 'Slow', 'Struggling', 'Non-Reader']);
+                this.renderPieChart('principalComprehensionStatusChart', 'comprehensionStatus', this.chartData?.comprehensionStatus || [0, 0], ['With Comprehension', 'Without Comprehension']);
             },
             updateDashboardCharts() {
                 if (!Object.keys(this.charts || {}).length) {
@@ -760,7 +674,6 @@
                     this.updatePieLikeChart('femaleSpeed', this.chartData?.speedFemale || [0, 0, 0, 0, 0], ['Fast', 'Average', 'Slow', 'Struggling', 'Non-Reader']);
                     this.updatePieLikeChart('comprehensionStatus', this.chartData?.comprehensionStatus || [0, 0], ['With Comprehension', 'Without Comprehension']);
                     this.queueChartResize();
-                    this.applyThemeDomFixes();
                 } catch (error) {
                     console.warn('Dashboard chart update skipped, re-rendering charts instead.', error);
                     this.renderAllCharts();
@@ -773,7 +686,7 @@
                 this.charts[key].updateOptions({
                     labels: display.labels,
                     colors: display.colors,
-                    stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor(this.charts[key]?.el)] },
+                    stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor()] },
                     noData: this.noDataOptions(),
                     tooltip: {
                         enabled: !display.isEmpty,
@@ -788,14 +701,8 @@
                 const map = {
                     readingLevel: () => this.charts.readingLevel.updateSeries([{ name: this.sexLabel(this.chartFilters.readingLevelSex), data: this.chartData?.readingLevel?.[this.chartFilters.readingLevelSex] || [0, 0, 0] }]),
                     comprehensionLevel: () => this.charts.comprehensionLevel.updateSeries([{ name: this.sexLabel(this.chartFilters.comprehensionLevelSex), data: this.chartData?.comprehensionLevel?.[this.chartFilters.comprehensionLevelSex] || [0, 0, 0] }]),
-                    readingRate: () => {
-                        this.charts.readingRate.updateOptions(this.lineChartThemeOptions(), true, true);
-                        this.charts.readingRate.updateSeries([{ name: this.sexLabel(this.chartFilters.readingRateSex), data: this.chartData?.readingRate?.[this.chartFilters.readingRateSex] || [0, 0, 0, 0] }]);
-                    },
-                    comprehensionRate: () => {
-                        this.charts.comprehensionRate.updateOptions(this.lineChartThemeOptions(), true, true);
-                        this.charts.comprehensionRate.updateSeries([{ name: this.sexLabel(this.chartFilters.comprehensionRateSex), data: this.chartData?.comprehensionRate?.[this.chartFilters.comprehensionRateSex] || [0, 0, 0, 0] }]);
-                    },
+                    readingRate: () => this.charts.readingRate.updateSeries([{ name: this.sexLabel(this.chartFilters.readingRateSex), data: this.chartData?.readingRate?.[this.chartFilters.readingRateSex] || [0, 0, 0, 0] }]),
+                    comprehensionRate: () => this.charts.comprehensionRate.updateSeries([{ name: this.sexLabel(this.chartFilters.comprehensionRateSex), data: this.chartData?.comprehensionRate?.[this.chartFilters.comprehensionRateSex] || [0, 0, 0, 0] }]),
                     filipinoCompletion: () => this.charts.filipinoCompletion.updateSeries(this.chartData?.filipinoCompletion?.[this.chartFilters.filipinoCompletionSex] || [0, 100]),
                     englishCompletion: () => this.charts.englishCompletion.updateSeries(this.chartData?.englishCompletion?.[this.chartFilters.englishCompletionSex] || [0, 100]),
                 };
@@ -810,7 +717,7 @@
                     fontFamily: 'Outfit, sans-serif',
                     toolbar: { show: false },
                     foreColor: this.chartMutedTextColor(),
-                    animations: { enabled: true, easing: 'easeinout', speed: 180 },
+                    animations: { enabled: true, easing: 'easeinout', speed: 450 },
                     redrawOnParentResize: true,
                     redrawOnWindowResize: true,
                 };
@@ -840,7 +747,7 @@
                 };
 
                 this.charts[key] = new ApexCharts(element, options);
-                this.charts[key].render().then(() => { this.queueChartResize(); this.applyThemeDomFixes(); });
+                this.charts[key].render().then(() => this.queueChartResize());
             },
             renderLineChart(elementId, key, data, title) {
                 const element = this.prepareElement(elementId, key);
@@ -867,7 +774,7 @@
                 };
 
                 this.charts[key] = new ApexCharts(element, options);
-                this.charts[key].render().then(() => { this.queueChartResize(); this.applyThemeDomFixes(); });
+                this.charts[key].render().then(() => this.queueChartResize());
             },
             renderDonutChart(elementId, key, data, labels, title) {
                 const element = this.prepareElement(elementId, key);
@@ -880,14 +787,14 @@
                     colors: display.colors,
                     chart: { ...this.chartBase(), type: 'donut', height: 320, width: '100%' },
                     legend: { position: 'bottom', fontSize: '12px', labels: { colors: this.chartMutedTextColor() }, itemMargin: { horizontal: 6, vertical: 3 } },
-                    stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor(element)] },
+                    stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor()] },
                     dataLabels: { enabled: false },
-                    plotOptions: { pie: { donut: { size: '68%', labels: { show: true, name: { fontSize: '12px', color: this.chartMutedTextColor() }, value: { fontSize: '22px', fontWeight: 800, color: this.chartTextColor(), formatter: (value) => display.isEmpty ? '0' : value }, total: { show: true, label: display.isEmpty ? 'No data yet' : title, color: this.chartMutedTextColor(), formatter: () => display.isEmpty ? '0' : data.reduce((sum, value) => sum + value, 0) } } } } },
+                    plotOptions: { pie: { donut: { size: '68%', labels: { show: true, name: { fontSize: '12px', color: this.chartMutedTextColor() }, value: { fontSize: '22px', fontWeight: 800, color: this.chartTextColor() }, total: { show: true, label: title, color: this.chartMutedTextColor(), formatter: () => display.isEmpty ? '0' : data.reduce((sum, value) => sum + value, 0) } } } } },
                     noData: this.noDataOptions(),
                 };
 
                 this.charts[key] = new ApexCharts(element, options);
-                this.charts[key].render().then(() => { this.queueChartResize(); this.applyThemeDomFixes(); });
+                this.charts[key].render().then(() => this.queueChartResize());
             },
             renderProgressDonut(elementId, key, data, label) {
                 const element = this.prepareElement(elementId, key);
@@ -896,17 +803,17 @@
                 const options = {
                     series: data,
                     labels: ['Assessed', 'Not Yet Assessed'],
-                    colors: [palette.yellow, this.isDarkMode() ? '#374151' : '#e5e7eb'],
+                    colors: [palette.yellow, document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'],
                     chart: { ...this.chartBase(), type: 'donut', height: 245, width: '100%' },
                     legend: { position: 'bottom', fontSize: '12px', labels: { colors: this.chartMutedTextColor() } },
-                    stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor(element)] },
+                    stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor()] },
                     dataLabels: { enabled: false },
                     plotOptions: { pie: { donut: { size: '74%', labels: { show: true, name: { color: this.chartMutedTextColor() }, value: { formatter: (value) => `${value}%`, color: this.chartTextColor(), fontWeight: 800 }, total: { show: true, showAlways: true, label, color: this.chartMutedTextColor(), formatter: (w) => `${w.globals.series[0]}%` } } } } },
                     noData: this.noDataOptions(),
                 };
 
                 this.charts[key] = new ApexCharts(element, options);
-                this.charts[key].render().then(() => { this.queueChartResize(); this.applyThemeDomFixes(); });
+                this.charts[key].render().then(() => this.queueChartResize());
             },
             renderPieChart(elementId, key, data, labels) {
                 const element = this.prepareElement(elementId, key);
@@ -919,23 +826,23 @@
                     colors: display.colors,
                     chart: { ...this.chartBase(), type: 'pie', height: 245, width: '100%' },
                     legend: { position: 'bottom', fontSize: '11px', labels: { colors: this.chartMutedTextColor() }, itemMargin: { horizontal: 5, vertical: 2 } },
-                    stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor(element)] },
+                    stroke: { width: this.chartStrokeWidth(), colors: [this.chartStrokeColor()] },
                     dataLabels: { enabled: false },
                     tooltip: { enabled: !display.isEmpty, y: { formatter: (value) => `${value} record(s)` } },
                     noData: this.noDataOptions(),
                 };
 
                 this.charts[key] = new ApexCharts(element, options);
-                this.charts[key].render().then(() => { this.queueChartResize(); this.applyThemeDomFixes(); });
+                this.charts[key].render().then(() => this.queueChartResize());
             },
         };
     };
 </script>
 
 <div
-    x-data="evaluatorDashboardPage(@js($dashboardData), @js($dashboardUrl))"
+    x-data="principalDashboardPage(@js($dashboardData), @js($dashboardUrl))"
     x-cloak
-    class="readbee-evaluator-dashboard space-y-6"
+    class="readbee-principal-dashboard space-y-6"
 >
     <section class="readbee-dashboard-hero p-5 shadow-theme-md sm:p-6 xl:p-7">
         <div class="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -945,12 +852,12 @@
                         <img src="{{ asset('landing-assets/images/CuteBee3.png') }}" alt="ReadBee dashboard" class="h-11 w-11 object-contain sm:h-12 sm:w-12">
                     </div>
                     <div class="min-w-0">
-                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500 dark:text-gray-400">Evaluator Dashboard</p>
-                        <h1 class="mt-1 text-2xl font-semibold leading-tight text-gray-950 dark:text-white sm:text-3xl">Assigned Reading Performance Overview</h1>
+                        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-gray-500 dark:text-gray-400">Principal Dashboard</p>
+                        <h1 class="mt-1 text-2xl font-semibold leading-tight text-gray-950 dark:text-white sm:text-3xl">School Reading Performance Overview</h1>
                     </div>
                 </div>
                 <p class="mt-4 max-w-3xl text-sm leading-6 text-gray-600 dark:text-gray-300">
-                    Monitor reading speed, reading level, comprehension, assessment completion, miscues, and pupils needing support for the grade levels and sections assigned to you.
+                    Monitor reading speed, reading level, comprehension, assessment completion, miscues, and pupils needing support across your school.
                 </p>
                 <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
                     <span class="readbee-dashboard-pill rounded-full px-3 py-1" x-text="selectedSchoolYearLabel()"></span>
@@ -989,7 +896,7 @@
                     <div class="mb-4 flex items-start justify-between gap-3">
                         <div>
                             <h2 class="text-base font-semibold text-gray-950 dark:text-white">Dashboard Filters</h2>
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Options are limited to your assigned classes.</p>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Options are limited to your school data.</p>
                         </div>
                         <button type="button" @click="closeFilterPanel()" class="rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">Close</button>
                     </div>
@@ -1048,7 +955,7 @@
 
                 <div class="grid w-full grid-cols-1 gap-2 min-[420px]:grid-cols-3 sm:gap-3">
                     <div class="readbee-dashboard-mini-card rounded-2xl p-3 text-center shadow-theme-xs">
-                        <p class="truncate text-[11px] font-medium text-gray-500 dark:text-gray-300">Assigned Pupils</p>
+                        <p class="truncate text-[11px] font-medium text-gray-500 dark:text-gray-300">Total Pupils</p>
                         <p class="mt-1 text-xl font-semibold text-gray-950 dark:text-white sm:text-2xl" x-text="summary.total_pupils || 0"></p>
                     </div>
                     <div class="readbee-dashboard-mini-card is-accent rounded-2xl p-3 text-center shadow-theme-xs">
@@ -1096,7 +1003,7 @@
                 <div><h2 class="text-base font-semibold text-gray-950 dark:text-white sm:text-lg">Reading Level</h2><p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Independent, instructional, and frustration levels.</p></div>
                 <select x-model="chartFilters.readingLevelSex" @change="refreshChart('readingLevel')" class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:w-36"><option value="all">All Sex</option><option value="male">Male</option><option value="female">Female</option></select>
             </div>
-            <div id="evaluatorReadingLevelChart" class="readbee-chart-host"></div>
+            <div id="principalReadingLevelChart" class="readbee-chart-host"></div>
         </div>
 
         <div class="readbee-chart-box rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] sm:p-5">
@@ -1104,7 +1011,7 @@
                 <div><h2 class="text-base font-semibold text-gray-950 dark:text-white sm:text-lg">Comprehension Level</h2><p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Comprehension assessment level results.</p></div>
                 <select x-model="chartFilters.comprehensionLevelSex" @change="refreshChart('comprehensionLevel')" class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:w-36"><option value="all">All Sex</option><option value="male">Male</option><option value="female">Female</option></select>
             </div>
-            <div id="evaluatorComprehensionLevelChart" class="readbee-chart-host"></div>
+            <div id="principalComprehensionLevelChart" class="readbee-chart-host"></div>
         </div>
     </section>
 
@@ -1114,7 +1021,7 @@
                 <div><h2 class="text-base font-semibold text-gray-950 dark:text-white sm:text-lg">Reading Rate</h2><p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Percentage of pupils reading at average or fast speed.</p></div>
                 <select x-model="chartFilters.readingRateSex" @change="refreshChart('readingRate')" class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:w-36"><option value="all">All Sex</option><option value="male">Male</option><option value="female">Female</option></select>
             </div>
-            <div id="evaluatorReadingRateChart" class="readbee-chart-host"></div>
+            <div id="principalReadingRateChart" class="readbee-chart-host"></div>
         </div>
 
         <div class="readbee-chart-box rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] sm:p-5">
@@ -1122,27 +1029,27 @@
                 <div><h2 class="text-base font-semibold text-gray-950 dark:text-white sm:text-lg">Comprehension Rate</h2><p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Percentage of pupils at instructional or independent comprehension.</p></div>
                 <select x-model="chartFilters.comprehensionRateSex" @change="refreshChart('comprehensionRate')" class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:w-36"><option value="all">All Sex</option><option value="male">Male</option><option value="female">Female</option></select>
             </div>
-            <div id="evaluatorComprehensionRateChart" class="readbee-chart-host"></div>
+            <div id="principalComprehensionRateChart" class="readbee-chart-host"></div>
         </div>
     </section>
 
     <section class="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div class="readbee-chart-box rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] sm:p-5">
             <h2 class="text-base font-semibold text-gray-950 dark:text-white sm:text-lg">Miscue Type Distribution</h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Summary of miscues found in assigned assessment records.</p>
-            <div id="evaluatorMiscueTypeChart" class="readbee-chart-host mt-2"></div>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Summary of miscues found in school assessment records.</p>
+            <div id="principalMiscueTypeChart" class="readbee-chart-host mt-2"></div>
         </div>
         <div class="readbee-chart-box rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] sm:p-5">
             <h2 class="text-base font-semibold text-gray-950 dark:text-white sm:text-lg">Comprehension Status</h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Records with and without comprehension scores.</p>
-            <div id="evaluatorComprehensionStatusChart" class="readbee-chart-host mt-2"></div>
+            <div id="principalComprehensionStatusChart" class="readbee-chart-host mt-2"></div>
         </div>
     </section>
 
     <section class="readbee-chart-box rounded-2xl border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] sm:p-5">
         <div class="mb-4 min-w-0">
             <h2 class="text-base font-semibold text-gray-950 dark:text-white sm:text-lg">Assessment Completion Rate</h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Completion progress for Filipino and English assessments in your assigned sections.</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Completion progress for Filipino and English assessments in your school.</p>
         </div>
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -1150,14 +1057,14 @@
                     <h3 class="font-semibold text-gray-950 dark:text-white">Filipino Completion</h3>
                     <select x-model="chartFilters.filipinoCompletionSex" @change="refreshChart('filipinoCompletion')" class="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-xs text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:w-32"><option value="all">All Sex</option><option value="male">Male</option><option value="female">Female</option></select>
                 </div>
-                <div id="evaluatorFilipinoCompletionChart" class="readbee-chart-host small-chart"></div>
+                <div id="principalFilipinoCompletionChart" class="readbee-chart-host small-chart"></div>
             </div>
             <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <h3 class="font-semibold text-gray-950 dark:text-white">English Completion</h3>
                     <select x-model="chartFilters.englishCompletionSex" @change="refreshChart('englishCompletion')" class="h-9 w-full rounded-lg border border-gray-300 bg-white px-3 text-xs text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:w-32"><option value="all">All Sex</option><option value="male">Male</option><option value="female">Female</option></select>
                 </div>
-                <div id="evaluatorEnglishCompletionChart" class="readbee-chart-host small-chart"></div>
+                <div id="principalEnglishCompletionChart" class="readbee-chart-host small-chart"></div>
             </div>
         </div>
     </section>
@@ -1167,7 +1074,7 @@
             <h2 class="text-base font-semibold text-gray-950 dark:text-white sm:text-lg">Reading Speed Distribution</h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Male pupils by reading speed.</p>
             <div class="readbee-speed-layout mt-3">
-                <div id="evaluatorMaleSpeedChart" class="readbee-chart-host small-chart"></div>
+                <div id="principalMaleSpeedChart" class="readbee-chart-host small-chart"></div>
                 <div class="readbee-speed-figure"><img src="{{ asset('landing-assets/images/maleChild.png') }}" alt="Male pupil reading"></div>
             </div>
         </div>
@@ -1175,7 +1082,7 @@
             <h2 class="text-base font-semibold text-gray-950 dark:text-white sm:text-lg">Reading Speed Distribution</h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Female pupils by reading speed.</p>
             <div class="readbee-speed-layout mt-3">
-                <div id="evaluatorFemaleSpeedChart" class="readbee-chart-host small-chart"></div>
+                <div id="principalFemaleSpeedChart" class="readbee-chart-host small-chart"></div>
                 <div class="readbee-speed-figure"><img src="{{ asset('landing-assets/images/femaleChild.png') }}" alt="Female pupil reading"></div>
             </div>
         </div>

@@ -14,17 +14,18 @@ use App\Http\Controllers\SchoolAdmin\SchoolAdminUserController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminUserImportController;
 use App\Http\Controllers\SchoolAdmin\SchoolAdminClassController;
 use App\Http\Controllers\PrincipalController;
+use App\Http\Controllers\Principal\PrincipalDashboardController;
 use App\Http\Controllers\Principal\PrincipalReadingMaterialController;
 use App\Http\Controllers\Principal\PrincipalPupilsController;
 use App\Http\Controllers\Principal\PrincipalAssessmentScheduleController;
 use App\Http\Controllers\Principal\PrincipalAssignEvaluatorController;
+use App\Http\Controllers\Principal\PrincipalProgressMonitoringController;
 use App\Http\Controllers\EvaluatorController;
+use App\Http\Controllers\Evaluator\EvaluatorDashboardController;
 use App\Http\Controllers\Evaluator\EvaluatorAssignmentController;
 use App\Http\Controllers\Evaluator\EvaluatorReadingMaterialController;
 use App\Http\Controllers\Evaluator\EvaluatorPupilsController;
 use App\Http\Controllers\Evaluator\EvaluatorProgressMonitoringController;
-use App\Http\Controllers\Evaluator\EvaluatorDashboardController;
-use App\Http\Controllers\Evaluator\EvaluatorClassReportController;
 
 // landing page
 Route::get('/', function () {
@@ -336,7 +337,7 @@ Route::prefix('school-admin')->group(function () {
 
 
 Route::prefix('principal')->group(function () {
-    Route::get('dashboard', [PrincipalController::class, 'dashboard'])
+    Route::get('dashboard', [PrincipalDashboardController::class, 'index'])
         ->name('principal.dashboard');
 
     Route::get('profile', [PrincipalController::class, 'profile'])
@@ -397,6 +398,9 @@ Route::prefix('principal')->group(function () {
         ->name('principal.pupils.import.commit');
         //Assessment Schedule Management
 
+    Route::get('progress-monitoring', [PrincipalProgressMonitoringController::class, 'index'])
+        ->name('principal.progress-monitoring');
+
     Route::get('assessment-schedule', [PrincipalAssessmentScheduleController::class, 'index'])
         ->name('principal.assessment-schedule');
 
@@ -447,16 +451,6 @@ Route::prefix('evaluator')->group(function () {
     Route::get('progress-monitoring', [EvaluatorProgressMonitoringController::class, 'index'])
         ->name('evaluator.progress-monitoring');
 
-
-    Route::get('reports', [EvaluatorClassReportController::class, 'index'])
-        ->name('evaluator.reports');
-
-    Route::get('reports/{assignmentId}/{language}', [EvaluatorClassReportController::class, 'show'])
-        ->name('evaluator.reports.show');
-
-    Route::post('reports/{assignmentId}/{language}/submit', [EvaluatorClassReportController::class, 'submit'])
-        ->name('evaluator.reports.submit');
-
     Route::patch('assignments/{assignmentId}/confirm', [EvaluatorAssignmentController::class, 'confirm'])
         ->name('evaluator.assignments.confirm');
 
@@ -505,6 +499,6 @@ Route::prefix('evaluator')->group(function () {
 });
 
 // Backwards-compatible teacher dashboard route for existing teacher redirects.
-Route::get('/teacher/dashboard', [EvaluatorDashboardController::class, 'index'])
+Route::get('/teacher/dashboard', [EvaluatorController::class, 'dashboard'])
     ->name('teacher.dashboard');
 

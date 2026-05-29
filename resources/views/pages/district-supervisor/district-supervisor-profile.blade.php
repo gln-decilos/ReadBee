@@ -1,4 +1,4 @@
-@extends('layouts.evaluator-layout')
+@extends('layouts.district-supervisor-layout')
 
 @section('content')
     <x-common.page-breadcrumb pageTitle="Profile" />

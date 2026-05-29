@@ -14,15 +14,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Consolidated Report' }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         [x-cloak] { display: none !important; }
 
+        @page {
+            size: 13in 8.5in;
+            margin: 0.35in;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             background: #f3f4f6;
+            color: #000000;
             font-family: "Times New Roman", Times, serif;
-            color: #111827;
         }
 
         .screen-toolbar {
@@ -32,17 +44,61 @@
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            justify-content: space-between;
-            gap: .75rem;
-            padding: .75rem 1rem;
-            background: rgba(255, 255, 255, .96);
-            border-bottom: 1px solid #e5e7eb;
-            font-family: Outfit, system-ui, sans-serif;
-            backdrop-filter: blur(10px);
+            justify-content: center;
+            gap: 10px;
+            padding: 16px;
+            background: #ffffff;
+            border-bottom: 1px solid #d1d5db;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .screen-toolbar > div:first-child {
+            display: none;
+        }
+
+        .screen-toolbar a,
+        .screen-toolbar button {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            border: 1px solid #d1d5db !important;
+            border-radius: 8px;
+            background: #ffffff !important;
+            color: #111827 !important;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 0 12px;
+            text-decoration: none;
+            transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+        }
+
+        .screen-toolbar a:hover,
+        .screen-toolbar button:hover {
+            background: #f9fafb !important;
+        }
+
+        .screen-toolbar form button:not([disabled]) {
+            border-color: #ffca03 !important;
+            background: #ffca03 !important;
+            color: #ffffff !important;
+        }
+
+        .screen-toolbar form button:not([disabled]):hover {
+            border-color: #2c3e50 !important;
+            background: #2c3e50 !important;
+        }
+
+        .screen-toolbar button[disabled] {
+            cursor: not-allowed !important;
+            border-color: #e5e7eb !important;
+            background: #f3f4f6 !important;
+            color: #6b7280 !important;
         }
 
         .paper-shell {
-            padding: 18px;
+            padding: 14px;
         }
 
         .report-paper {
@@ -52,13 +108,13 @@
             display: flex;
             flex-direction: column;
             background: #ffffff;
-            box-shadow: 0 18px 55px rgba(15, 23, 42, .16);
-            padding: .42in .5in;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.15);
+            padding: 0.22in 0.30in;
         }
 
         .report-header {
             text-align: center;
-            line-height: 1.12;
+            line-height: 1.08;
         }
 
         .republic { font-size: 11pt; }
@@ -67,8 +123,8 @@
 
         .header-rule,
         .footer-rule {
-            border-top: 1px solid #111827;
-            margin: 8px 0 9px;
+            border-top: 1pt solid #000000;
+            margin: 7pt 0 6pt;
             width: 100%;
         }
 
@@ -81,18 +137,20 @@
         }
 
         .report-meta {
-            margin-top: 10px;
+            margin-top: 9pt;
             display: grid;
             grid-template-columns: 1fr;
-            gap: 6px;
+            gap: 4pt;
             font-size: 10pt;
+            line-height: 1.45;
         }
 
         .meta-line strong { font-weight: 700; }
         .meta-value {
             display: inline-block;
-            min-width: 210px;
-            border-bottom: 1px solid #111827;
+            min-width: 2.75in;
+            border-bottom: 1pt solid #000000;
+            padding: 0 4pt 1pt;
             font-weight: 400;
         }
 
@@ -101,22 +159,24 @@
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
-            padding-top: 28px;
+            padding-top: 10pt;
         }
 
         table.report-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9.5pt;
+            margin-top: 0;
             table-layout: fixed;
+            font-size: 8.2pt;
         }
 
         .report-table th,
         .report-table td {
-            border: 1px solid #111827;
-            padding: 5px 4px;
+            border: 1px solid #000000;
+            padding: 3pt 2pt;
             text-align: center;
             vertical-align: middle;
+            word-wrap: break-word;
             line-height: 1.15;
         }
 
@@ -127,7 +187,7 @@
         .report-table .section-cell {
             text-align: left;
             font-weight: 700;
-            padding-left: 8px;
+            padding-left: 5pt;
             width: 17%;
         }
 
@@ -136,31 +196,34 @@
         }
 
         .submitted-list {
-            margin-top: 12px;
-            font-size: 9pt;
-            color: #374151;
+            margin-top: 10pt;
+            font-size: 8.5pt;
+            color: #111827;
+            line-height: 1.35;
         }
 
         .footer {
             margin-top: auto;
-            font-size: 10pt;
+            padding-top: 10pt;
+            text-align: center;
+            font-size: 9pt;
+            line-height: 1.35;
+        }
+
+        .footer-rule {
+            margin-bottom: 6pt;
         }
 
         .tagline {
             text-align: center;
             font-style: italic;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 4pt;
         }
 
         .footer-contact {
-            line-height: 1.25;
             text-align: left;
-        }
-
-        @page {
-            size: 13in 8.5in landscape;
-            margin: .35in;
+            line-height: 1.35;
         }
 
         @media print {

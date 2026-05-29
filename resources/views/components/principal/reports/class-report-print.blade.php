@@ -8,8 +8,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $report['print_title'] }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
+
     <style>
-        @page { size: 13in 8.5in landscape; margin: 0.35in; }
+        @page { size: 13in 8.5in; margin: 0.35in; }
         * { box-sizing: border-box; }
         body {
             margin: 0;
@@ -25,13 +28,17 @@
             flex-wrap: wrap;
             gap: 10px;
             justify-content: center;
-            padding: 14px;
+            padding: 16px;
             background: #ffffff;
             border-bottom: 1px solid #d1d5db;
             font-family: Arial, Helvetica, sans-serif;
         }
         .toolbar a,
         .toolbar button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
             border: 1px solid #d1d5db;
             border-radius: 8px;
             background: #ffffff;
@@ -39,15 +46,23 @@
             cursor: pointer;
             font-size: 13px;
             font-weight: 600;
-            padding: 8px 12px;
+            padding: 0 12px;
             text-decoration: none;
+            transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+        }
+        .toolbar a:hover,
+        .toolbar button:hover {
+            background: #f9fafb;
         }
         .toolbar .primary {
-            border-color: #f2c94c;
-            background: #f2c94c;
+            border-color: #ffca03;
+            background: #ffca03;
             color: #ffffff;
         }
-        .toolbar .primary:hover { background: #e5bd42; }
+        .toolbar .primary:hover {
+            border-color: #2c3e50;
+            background: #2c3e50;
+        }
         .notice {
             max-width: 13in;
             margin: 12px auto 0;
@@ -111,7 +126,7 @@
         }
         .report-table th,
         .report-table td {
-            border: 1px solid #111827;
+            border: 1px solid #000000;
             padding: 3pt 2pt;
             text-align: center;
             vertical-align: middle;

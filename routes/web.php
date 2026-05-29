@@ -28,6 +28,9 @@ use App\Http\Controllers\Evaluator\EvaluatorReadingMaterialController;
 use App\Http\Controllers\Evaluator\EvaluatorPupilsController;
 use App\Http\Controllers\Evaluator\EvaluatorProgressMonitoringController;
 use App\Http\Controllers\Evaluator\EvaluatorClassReportController;
+use App\Http\Controllers\DistrictSupervisor\DistrictSupervisorDashboardController;
+use App\Http\Controllers\DistrictSupervisor\DistrictSupervisorProgressMonitoringController;
+use App\Http\Controllers\DistrictSupervisor\DistrictSupervisorReportController;
 
 // landing page
 Route::get('/', function () {
@@ -449,6 +452,30 @@ Route::prefix('principal')->group(function () {
 
 
 
+});
+
+
+Route::prefix('district-supervisor')->group(function () {
+    Route::get('dashboard', [DistrictSupervisorDashboardController::class, 'index'])
+        ->name('district-supervisor.dashboard');
+
+    Route::get('progress-monitoring', [DistrictSupervisorProgressMonitoringController::class, 'index'])
+        ->name('district-supervisor.progress-monitoring');
+
+    Route::get('reports', [DistrictSupervisorReportController::class, 'index'])
+        ->name('district-supervisor.reports');
+
+    Route::get('reports/school-report/{schoolReportId}', [DistrictSupervisorReportController::class, 'showSchoolReport'])
+        ->name('district-supervisor.reports.school-report');
+
+    Route::get('reports/{gradeLevelId}/{yearId}/{quarterId}/{language}', [DistrictSupervisorReportController::class, 'show'])
+        ->name('district-supervisor.reports.show');
+
+    Route::get('profile', function () {
+        return view('pages.district-supervisor.district-supervisor-profile', [
+            'title' => 'District Supervisor Profile',
+        ]);
+    })->name('district-supervisor.profile');
 });
 
 

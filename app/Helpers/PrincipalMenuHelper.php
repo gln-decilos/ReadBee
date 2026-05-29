@@ -30,13 +30,19 @@ class PrincipalMenuHelper
             ],
 
             [
+                'icon' => 'reports',
+                'name' => 'Reports',
+                'path' => '/principal/reports',
+            ],
+
+            [
                 'icon' => 'calendar',
                 'name' => 'Assessment Schedule',
                 'path' => '/principal/assessment-schedule',
             ],
 
             [
-                'icon' => 'calendar',
+                'icon' => 'user-check',
                 'name' => 'Assign Evaluator',
                 'path' => '/principal/assign-evaluator',
             ],
@@ -87,6 +93,10 @@ class PrincipalMenuHelper
             'calendar' => '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 2C8.41421 2 8.75 2.33579 8.75 2.75V3.75H15.25V2.75C15.25 2.33579 15.5858 2 16 2C16.4142 2 16.75 2.33579 16.75 2.75V3.75H18.5C19.7426 3.75 20.75 4.75736 20.75 6V9V19C20.75 20.2426 19.7426 21.25 18.5 21.25H5.5C4.25736 21.25 3.25 20.2426 3.25 19V9V6C3.25 4.75736 4.25736 3.75 5.5 3.75H7.25V2.75C7.25 2.33579 7.58579 2 8 2ZM8 5.25H5.5C5.08579 5.25 4.75 5.58579 4.75 6V8.25H19.25V6C19.25 5.58579 18.9142 5.25 18.5 5.25H16H8ZM19.25 9.75H4.75V19C4.75 19.4142 5.08579 19.75 5.5 19.75H18.5C18.9142 19.75 19.25 19.4142 19.25 19V9.75Z" fill="currentColor"></path></svg>',
 
             'monitoring' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4.75 19.25H19.25" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7.25 16.25V12.25" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 16.25V7.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16.75 16.25V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M6.75 8.25L10.25 11.25L13.5 6.75L17.25 8.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+
+            'reports' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6.75 3.75h7.5L18.75 8.25v12H6.75V3.75Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14.25 3.75v4.5h4.5M9 12h6M9 15h6M9 18h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+
+            'user-check' => '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15.5 20.25v-1.1c0-1.88-1.52-3.4-3.4-3.4H7.65c-1.88 0-3.4 1.52-3.4 3.4v1.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M9.875 12.25a3.25 3.25 0 1 0 0-6.5a3.25 3.25 0 0 0 0 6.5Z" stroke="currentColor" stroke-width="1.6"/><path d="M16.25 10.75l1.75 1.75l3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 
           ];
 

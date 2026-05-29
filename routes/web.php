@@ -20,6 +20,7 @@ use App\Http\Controllers\Principal\PrincipalPupilsController;
 use App\Http\Controllers\Principal\PrincipalAssessmentScheduleController;
 use App\Http\Controllers\Principal\PrincipalAssignEvaluatorController;
 use App\Http\Controllers\Principal\PrincipalProgressMonitoringController;
+use App\Http\Controllers\Principal\PrincipalReportController;
 use App\Http\Controllers\EvaluatorController;
 use App\Http\Controllers\Evaluator\EvaluatorDashboardController;
 use App\Http\Controllers\Evaluator\EvaluatorAssignmentController;
@@ -401,6 +402,18 @@ Route::prefix('principal')->group(function () {
 
     Route::get('progress-monitoring', [PrincipalProgressMonitoringController::class, 'index'])
         ->name('principal.progress-monitoring');
+
+    Route::get('reports', [PrincipalReportController::class, 'index'])
+        ->name('principal.reports');
+
+    Route::get('reports/class-report/{classReportId}', [PrincipalReportController::class, 'showClassReport'])
+        ->name('principal.reports.class-report');
+
+    Route::get('reports/{gradeLevelId}/{yearId}/{quarterId}/{language}', [PrincipalReportController::class, 'show'])
+        ->name('principal.reports.show');
+
+    Route::post('reports/{gradeLevelId}/{yearId}/{quarterId}/{language}/submit', [PrincipalReportController::class, 'submit'])
+        ->name('principal.reports.submit');
 
     Route::get('assessment-schedule', [PrincipalAssessmentScheduleController::class, 'index'])
         ->name('principal.assessment-schedule');

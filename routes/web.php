@@ -37,6 +37,11 @@ Route::get('/', function () {
     return view('pages.landing', ['title' => 'ReadBee']);
 })->name('landing');
 
+Route::get('/download-readbee', function () {
+    return view('pages.download-readbee', ['title' => 'Download ReadBee']);
+})->name('download.readbee');
+
+
 // dashboard pages
 Route::get('/dashboard', function () {
     return view('pages.dashboard.ecommerce', ['title' => 'ReadBee Dashboard']);

@@ -339,6 +339,85 @@
             }
         }
 
+
+
+        /* Download page mobile menu fix: force options to show like landing page. */
+        @media (max-width: 1199px) {
+            body.download-readbee-page.mobile-nav-active {
+                overflow: hidden !important;
+            }
+
+            body.download-readbee-page.mobile-nav-active #navmenu,
+            body.download-readbee-page.mobile-nav-active .navmenu {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                position: fixed !important;
+                top: 64px !important;
+                left: 14px !important;
+                right: 14px !important;
+                bottom: auto !important;
+                width: auto !important;
+                height: auto !important;
+                max-width: none !important;
+                max-height: calc(100vh - 84px) !important;
+                overflow-y: auto !important;
+                z-index: 99999 !important;
+                padding: 12px !important;
+                border-radius: 16px !important;
+                background: #ffffff !important;
+                border: 1px solid rgba(229, 231, 235, .95) !important;
+                box-shadow: 0 18px 45px rgba(15, 23, 42, .18) !important;
+                transform: none !important;
+            }
+
+            body.download-readbee-page.mobile-nav-active #navmenu > ul,
+            body.download-readbee-page.mobile-nav-active .navmenu > ul {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: static !important;
+                inset: auto !important;
+                width: 100% !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 4px !important;
+                background: #ffffff !important;
+                border: 0 !important;
+                box-shadow: none !important;
+                transform: none !important;
+            }
+
+            body.download-readbee-page.mobile-nav-active #navmenu li,
+            body.download-readbee-page.mobile-nav-active .navmenu li {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+            }
+
+            body.download-readbee-page.mobile-nav-active #navmenu a,
+            body.download-readbee-page.mobile-nav-active .navmenu a {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                width: 100% !important;
+                padding: 10px 12px !important;
+                color: var(--readbee-dark) !important;
+                border-radius: 10px !important;
+            }
+
+            body.download-readbee-page.mobile-nav-active #navmenu a.readbee-login-btn,
+            body.download-readbee-page.mobile-nav-active .navmenu a.readbee-login-btn {
+                display: inline-flex !important;
+                width: fit-content !important;
+                margin: 8px 12px 4px !important;
+                padding: 9px 16px !important;
+            }
+        }
+
         @media (max-width: 991px) {
             .download-readbee-page .download-hero { min-height: 92vh; padding: 120px 0 90px; }
             .app-image-wrapper { max-width: 245px; }
@@ -569,21 +648,31 @@
                 });
             }
 
+            const getMobileMenu = function () {
+                return document.querySelector('#navmenu, .navmenu');
+            };
+
             const setMobileMenuOpen = function (open, toggle) {
+                const menu = getMobileMenu();
                 document.body.classList.toggle('mobile-nav-active', open);
-                const menu = document.querySelector('#navmenu, .navmenu');
 
                 if (menu) {
                     menu.classList.toggle('show', open);
                     menu.classList.toggle('active', open);
+                    menu.style.display = open && window.innerWidth < 1200 ? 'block' : '';
+                    menu.style.visibility = open && window.innerWidth < 1200 ? 'visible' : '';
+                    menu.style.opacity = open && window.innerWidth < 1200 ? '1' : '';
+                    menu.style.pointerEvents = open && window.innerWidth < 1200 ? 'auto' : '';
 
                     const list = menu.querySelector('ul');
                     if (list) {
                         list.style.display = open && window.innerWidth < 1200 ? 'block' : '';
+                        list.style.visibility = open && window.innerWidth < 1200 ? 'visible' : '';
+                        list.style.opacity = open && window.innerWidth < 1200 ? '1' : '';
                         list.style.position = open && window.innerWidth < 1200 ? 'static' : '';
                         list.style.inset = open && window.innerWidth < 1200 ? 'auto' : '';
-                        list.style.opacity = open && window.innerWidth < 1200 ? '1' : '';
-                        list.style.visibility = open && window.innerWidth < 1200 ? 'visible' : '';
+                        list.style.maxHeight = open && window.innerWidth < 1200 ? 'none' : '';
+                        list.style.overflow = open && window.innerWidth < 1200 ? 'visible' : '';
                     }
 
                     if (open && window.innerWidth < 1200) {
@@ -593,17 +682,23 @@
                         menu.style.top = `${Math.max(headerBottom + 8, 58)}px`;
                         menu.style.left = '14px';
                         menu.style.right = '14px';
+                        menu.style.bottom = 'auto';
+                        menu.style.width = 'auto';
+                        menu.style.height = 'auto';
                         menu.style.zIndex = '99999';
                     } else {
                         menu.style.position = '';
                         menu.style.top = '';
                         menu.style.left = '';
                         menu.style.right = '';
+                        menu.style.bottom = '';
+                        menu.style.width = '';
+                        menu.style.height = '';
                         menu.style.zIndex = '';
                     }
                 }
 
-                const icon = toggle?.matches?.('i') ? toggle : document.querySelector('.mobile-nav-toggle');
+                const icon = toggle?.matches?.('.mobile-nav-toggle') ? toggle : document.querySelector('.mobile-nav-toggle');
                 if (icon) {
                     icon.classList.toggle('bi-list', !open);
                     icon.classList.toggle('bi-x', open);
@@ -611,12 +706,13 @@
                 }
             };
 
-            document.addEventListener('click', function (event) {
-                const toggle = event.target.closest('.mobile-nav-toggle');
+            const handleMobileToggleClick = function (event) {
+                const toggle = event.target.closest('.mobile-nav-toggle, .navbar-toggler, [data-bs-toggle="collapse"], [data-readbee-mobile-toggle]');
 
                 if (toggle) {
                     event.preventDefault();
                     event.stopPropagation();
+                    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
                     setMobileMenuOpen(!document.body.classList.contains('mobile-nav-active'), toggle);
                     return;
                 }
@@ -625,7 +721,10 @@
                 if (navLink && document.body.classList.contains('mobile-nav-active')) {
                     setMobileMenuOpen(false);
                 }
-            });
+            };
+
+            document.addEventListener('click', handleMobileToggleClick, true);
+            document.addEventListener('click', handleMobileToggleClick);
 
             window.addEventListener('resize', function () {
                 if (window.innerWidth >= 1200) {

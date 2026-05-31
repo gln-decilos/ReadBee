@@ -72,7 +72,7 @@
             background-color: var(--readbee-yellow) !important;
             color: #000000 !important;
             border: 0 !important;
-            font-weight: 600 !important;
+            font-weight: 350 !important;
             line-height: 1 !important;
             text-decoration: none !important;
             box-shadow: none !important;
@@ -114,30 +114,31 @@
             justify-content: center;
             overflow: hidden;
             color: #ffffff;
-            background: linear-gradient(135deg, rgba(17, 24, 39, .88), rgba(17, 24, 39, .72));
+            background: var(--background-color);
             padding: 130px 0 120px;
         }
 
         .download-readbee-page .download-hero .hero-bg {
             position: absolute;
             inset: 0;
+            display: block;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            z-index: -2;
+            z-index: 1;
         }
 
         .download-readbee-page .download-hero::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(135deg, rgba(11, 16, 26, 0.86), rgba(9, 13, 20, 0.56));
-            z-index: -1;
+            background: color-mix(in srgb, var(--background-color), transparent 10%);
+            z-index: 2;
         }
 
         .download-readbee-page .download-hero .container {
             position: relative;
-            z-index: 2;
+            z-index: 3;
         }
 
         .download-readbee-page .download-hero h1,
@@ -279,6 +280,65 @@
             #navmenu a.readbee-login-btn { width: fit-content !important; margin-top: .35rem; }
         }
 
+        @media (max-width: 1199px) {
+            body.mobile-nav-active { overflow: hidden; }
+
+            body.mobile-nav-active #navmenu,
+            body.mobile-nav-active .navmenu {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                position: fixed !important;
+                top: 64px !important;
+                left: 14px !important;
+                right: 14px !important;
+                bottom: auto !important;
+                width: auto !important;
+                max-height: calc(100vh - 84px) !important;
+                overflow-y: auto !important;
+                z-index: 99999 !important;
+                padding: 12px !important;
+                border-radius: 16px !important;
+                background: #ffffff !important;
+                border: 1px solid rgba(229, 231, 235, .95) !important;
+                box-shadow: 0 18px 45px rgba(15, 23, 42, .18) !important;
+                transform: none !important;
+            }
+
+            body.mobile-nav-active #navmenu > ul,
+            body.mobile-nav-active .navmenu > ul {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: static !important;
+                inset: auto !important;
+                width: 100% !important;
+                max-height: none !important;
+                margin: 0 !important;
+                padding: 4px !important;
+                overflow: visible !important;
+                background: #ffffff !important;
+                border: 0 !important;
+                box-shadow: none !important;
+            }
+
+            body.mobile-nav-active #navmenu li,
+            body.mobile-nav-active .navmenu li { width: 100% !important; }
+
+            body.mobile-nav-active #navmenu a,
+            body.mobile-nav-active .navmenu a {
+                color: var(--readbee-dark) !important;
+                justify-content: flex-start !important;
+            }
+
+            body.mobile-nav-active #navmenu a.readbee-login-btn {
+                display: inline-flex !important;
+                width: fit-content !important;
+                margin-top: .35rem !important;
+            }
+        }
+
         @media (max-width: 991px) {
             .download-readbee-page .download-hero { min-height: 92vh; padding: 120px 0 90px; }
             .app-image-wrapper { max-width: 245px; }
@@ -304,11 +364,15 @@
             <nav id="navmenu" class="navmenu">
                 <ul>
                     <li><a href="{{ url('/') }}">Home</a></li>
+                    <li><a href="{{ url('/#about') }}">About</a></li>
+                    <li><a href="{{ url('/#features') }}">Features</a></li>
+                    <li><a href="{{ url('/#team') }}">Team</a></li>
+                    <li><a href="{{ url('/#contact') }}">Contact</a></li>
                     <li><a href="{{ url('/download-readbee') }}" class="active">Download ReadBee</a></li>
                     <li><a href="{{ route('signin') }}" class="readbee-login-btn">Login</a></li>
                 </ul>
 
-                <i class="mobile-nav-toggle d-xl-none bi bi-list" aria-label="Toggle navigation"></i>
+                <i class="mobile-nav-toggle d-xl-none bi bi-list" role="button" aria-label="Toggle navigation" aria-expanded="false"></i>
             </nav>
         </div>
     </header>
@@ -457,6 +521,7 @@
                         <li><a href="{{ url('/') }}">Home</a></li>
                         <li><a href="{{ url('/#about') }}">About</a></li>
                         <li><a href="{{ url('/#features') }}">Features</a></li>
+                        <li><a href="{{ url('/#team') }}">Team</a></li>
                         <li><a href="{{ url('/#contact') }}">Contact</a></li>
                     </ul>
                 </div>
@@ -512,6 +577,15 @@
                     menu.classList.toggle('show', open);
                     menu.classList.toggle('active', open);
 
+                    const list = menu.querySelector('ul');
+                    if (list) {
+                        list.style.display = open && window.innerWidth < 1200 ? 'block' : '';
+                        list.style.position = open && window.innerWidth < 1200 ? 'static' : '';
+                        list.style.inset = open && window.innerWidth < 1200 ? 'auto' : '';
+                        list.style.opacity = open && window.innerWidth < 1200 ? '1' : '';
+                        list.style.visibility = open && window.innerWidth < 1200 ? 'visible' : '';
+                    }
+
                     if (open && window.innerWidth < 1200) {
                         const header = document.querySelector('.header, #header');
                         const headerBottom = header ? Math.ceil(header.getBoundingClientRect().bottom) : 58;
@@ -533,6 +607,7 @@
                 if (icon) {
                     icon.classList.toggle('bi-list', !open);
                     icon.classList.toggle('bi-x', open);
+                    icon.setAttribute('aria-expanded', open ? 'true' : 'false');
                 }
             };
 

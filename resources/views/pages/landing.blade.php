@@ -129,7 +129,7 @@
             background-color: #ffc107 !important;
             color: #000000 !important;
             border: 0 !important;
-            font-weight: 600 !important;
+            font-weight: 350 !important;
             line-height: 1 !important;
             text-decoration: none !important;
             box-shadow: none !important;
@@ -204,6 +204,112 @@
         #readbee-landing-root footer .footer-brand,
         #readbee-landing-root .footer .footer-brand {
             color: #ffc107 !important;
+        }
+
+
+
+        /* Our Team: professional compact ID portrait cards */
+        .readbee-team-section {
+            background: linear-gradient(180deg, #fffdf6 0%, #ffffff 100%);
+        }
+
+        .readbee-id-card {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 365px;
+            border-radius: 20px;
+            background: #ffffff;
+            border: 1px solid rgba(17, 24, 39, .08);
+            box-shadow: 0 14px 36px rgba(15, 23, 42, .10);
+            transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+        }
+
+        .readbee-id-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(255, 193, 7, .45);
+            box-shadow: 0 20px 48px rgba(15, 23, 42, .14);
+        }
+
+        .readbee-id-card::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 92px;
+            background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #ffc107 50%, #ffd75e 100%);
+            z-index: 0;
+        }
+
+        .readbee-id-card-top,
+        .readbee-id-photo-wrap,
+        .readbee-id-card-body {
+            position: relative;
+            z-index: 1;
+        }
+
+        .readbee-id-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 16px 6px;
+            color: #ffffff;
+            font-family: 'Poppins', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .10em;
+            text-transform: uppercase;
+        }
+
+        .readbee-id-card-code {
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .92);
+            color: #111827;
+            font-size: 10px;
+            letter-spacing: .04em;
+        }
+
+        .readbee-id-photo-wrap {
+            width: 150px;
+            height: 185px;
+            margin: 14px auto 18px;
+            padding: 7px;
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, .14);
+        }
+
+        .readbee-id-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 11px;
+            border: 2px solid #f8fafc;
+        }
+
+        .readbee-id-card-body {
+            flex: 1;
+            padding: 0 18px 22px;
+            text-align: center;
+        }
+
+        .readbee-id-card-body h3 {
+            margin: 0 0 7px;
+            color: #111827;
+            font-size: 17px;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .readbee-id-card-body p {
+            min-height: 38px;
+            margin: 0;
+            padding: 0 8px;
+            color: #4b5563;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.35;
         }
 
 

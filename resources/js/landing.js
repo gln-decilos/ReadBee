@@ -38,6 +38,7 @@ function Header({ signinUrl }) {
                     h('li', null, h('a', { href: '#hero', className: 'active', onClick: closeMenu }, 'Home')),
                     h('li', null, h('a', { href: '#about', onClick: closeMenu }, 'About')),
                     h('li', null, h('a', { href: '#features', onClick: closeMenu }, 'Features')),
+                    h('li', null, h('a', { href: '#team', onClick: closeMenu }, 'Team')),
                     h('li', null, h('a', { href: '#contact', onClick: closeMenu }, 'Contact')),
                     h('li', null, h('a', { href: '#download', onClick: closeMenu }, 'Download ReadBee')),
                     h('li', null, h('a', { href: signinUrl, className: 'btn readbee-login-btn' }, 'Login'))
@@ -119,6 +120,48 @@ function Features() {
     );
 }
 
+
+function TeamCard({ image, name, role, code }) {
+    return h('div', { className: 'col-xl-3 col-lg-4 col-sm-6 d-flex' },
+        h('article', { className: 'readbee-id-card w-100' },
+            h('div', { className: 'readbee-id-card-top' },
+                h('span', { className: 'readbee-id-card-label' }, 'ReadBee'),
+                h('span', { className: 'readbee-id-card-code' }, code)
+            ),
+            h('div', { className: 'readbee-id-photo-wrap' },
+                h('img', { src: asset(window.readBeeLanding.assetsUrl, image), alt: `${name} portrait`, className: 'readbee-id-photo' })
+            ),
+            h('div', { className: 'readbee-id-card-body' },
+                h('h3', null, name),
+                h('p', null, role)
+            )
+        )
+    );
+}
+
+function Team() {
+    const members = [
+        ['images/team/team1.png', 'Dr. Noelyn M. De Jesus', 'Capstone Adviser', 'ADVISER'],
+        ['images/team/team2.png', 'Glenmor A. Decilos', 'Web App Developer / Business Analyst', 'Web'],
+        ['images/team/team4.png', 'Cindy V. Certeza', 'Quality Assurance Specialist', 'QA'],
+        ['images/team/team3.png', 'Carl Justine B. Butiong', 'Mobile App Developer', 'MOBILE'],
+
+
+    ];
+
+    return h('section', { id: 'team', className: 'team section readbee-team-section py-5' },
+        h('div', { className: 'container section-title' },
+            h('h2', null, 'Our Team'),
+            h('div', null, h('span', null, 'Meet the people behind '), h('span', { className: 'description-title' }, 'ReadBee'))
+        ),
+        h('div', { className: 'container' },
+            h('div', { className: 'row gy-4 justify-content-center' },
+                members.map(([image, name, role, code]) => h(TeamCard, { key: name, image, name, role, code }))
+            )
+        )
+    );
+}
+
 function Download({ evaluatorApkUrl, pupilApkUrl }) {
     return h('section', { id: 'download', className: 'about section readbee-download-section' },
         h('div', { className: 'container text-center' },
@@ -182,6 +225,7 @@ function Footer() {
                     h('li', null, h('a', { href: '#hero' }, 'Home')),
                     h('li', null, h('a', { href: '#about' }, 'About')),
                     h('li', null, h('a', { href: '#features' }, 'Features')),
+                    h('li', null, h('a', { href: '#team' }, 'Team')),
                     h('li', null, h('a', { href: '#contact' }, 'Contact'))
                 )),
                 h('div', { className: 'col-lg-4 col-md-12 footer-newsletter' }, h('p', null, 'ReadBee is dedicated to transforming reading assessment through innovative technology solutions that empower educators and engage students in their literacy journey.'))
@@ -207,6 +251,7 @@ function LandingPage() {
             h(Hero, { evaluatorApkUrl: cfg.evaluatorApkUrl }),
             h(About),
             h(Features),
+            h(Team),
             h(Download, { evaluatorApkUrl: cfg.evaluatorApkUrl, pupilApkUrl: cfg.pupilApkUrl }),
             h(Contact)
         ),

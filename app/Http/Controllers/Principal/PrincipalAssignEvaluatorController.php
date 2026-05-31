@@ -929,6 +929,15 @@ class PrincipalAssignEvaluatorController extends Controller
             ?? 'School Principal';
 
         try {
+            // Force evaluator confirmation links to use the hosted Render URL,
+            // even when the assignment email is created from localhost.
+            URL::forceRootUrl(rtrim(config('app.url', 'https://readbee.onrender.com'), '/'));
+            URL::forceScheme('https');
+
+            $confirmUrl = URL::temporarySignedRoute('principal.assign-evaluator.confirm', now()->addDays(7), [
+                'assignmentId' => $assignment['assignment_id'],
+            ]);
+
             Mail::to($email)->send(new EvaluatorAssignmentMail(
                 $assignment['evaluator_name'] ?? 'Evaluator',
                 $assignment['school_year_label'] ?? 'School Year',
@@ -937,9 +946,7 @@ class PrincipalAssignEvaluatorController extends Controller
                 $assignment['grade_label'] ?? 'Grade',
                 $assignment['section_name'] ?? 'Section',
                 $principalName,
-                URL::temporarySignedRoute('principal.assign-evaluator.confirm', now()->addDays(7), [
-                    'assignmentId' => $assignment['assignment_id'],
-                ])
+                $confirmUrl
             ));
 
             return true;

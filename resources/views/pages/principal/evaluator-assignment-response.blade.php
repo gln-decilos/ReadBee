@@ -32,12 +32,6 @@
             box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
         }
 
-        .logo {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px auto;
-        }
-
         .brand {
             color: #facc15;
             font-weight: 800;
@@ -101,8 +95,6 @@
 
 <body>
     <div class="card">
-        <img src="{{ asset('landing-assets/images/ReadBee-Logo-Dark.png') }}" alt="ReadBee Logo" class="logo">
-
         <div class="brand">ReadBee</div>
 
         <div class="icon {{ ($status ?? '') === 'confirmed' ? 'confirmed' : 'failed' }}">

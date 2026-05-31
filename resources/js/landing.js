@@ -159,10 +159,10 @@ function Team() {
     const members = [
         // IMPORTANT for Render/Linux: filenames and extensions must match GitHub exactly.
         // These files should be in: public/landing-assets/images/
-        ['images/Team1.png', 'Dr. Noelyn M. De Jesus', 'Capstone Adviser', 'ADVISER'],
-        ['images/Team2.png', 'Glenmor A. Decilos', 'Web App Developer / Business Analyst', 'WEB'],
-        ['images/Team3.png', 'Carl Justine B. Butiong', 'Mobile App Developer', 'MOBILE'],
-        ['images/Team4.png', 'Cindy V. Certeza', 'Quality Assurance Specialist', 'QA'],
+        ['images/team/Team1.png', 'Dr. Noelyn M. De Jesus', 'Capstone Adviser', 'ADVISER'],
+        ['images/team/Team2.png', 'Glenmor A. Decilos', 'Web App Developer / Business Analyst', 'WEB'],
+        ['images/team/Team3.png', 'Carl Justine B. Butiong', 'Mobile App Developer', 'MOBILE'],
+        ['images/team/Team4.png', 'Cindy V. Certeza', 'Quality Assurance Specialist', 'QA'],
     ];
 
     return h('section', { id: 'team', className: 'team section readbee-team-section py-5' },

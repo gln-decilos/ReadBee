@@ -122,6 +122,9 @@ function Features() {
 
 
 function TeamCard({ image, name, role, code }) {
+    const imageUrl = asset(window.readBeeLanding.assetsUrl, image);
+    const fallbackUrl = asset(window.readBeeLanding.assetsUrl, 'images/ReadBee-Logo-Dark.png');
+
     return h('div', { className: 'col-xl-3 col-lg-4 col-sm-6 d-flex' },
         h('article', { className: 'readbee-id-card w-100' },
             h('div', { className: 'readbee-id-card-top' },
@@ -129,7 +132,20 @@ function TeamCard({ image, name, role, code }) {
                 h('span', { className: 'readbee-id-card-code' }, code)
             ),
             h('div', { className: 'readbee-id-photo-wrap' },
-                h('img', { src: asset(window.readBeeLanding.assetsUrl, image), alt: `${name} portrait`, className: 'readbee-id-photo' })
+                h('img', {
+                    src: imageUrl,
+                    alt: `${name} portrait`,
+                    className: 'readbee-id-photo',
+                    loading: 'lazy',
+                    onError: (event) => {
+                        if (event.currentTarget.dataset.fallbackApplied === 'true') return;
+                        event.currentTarget.dataset.fallbackApplied = 'true';
+                        event.currentTarget.src = fallbackUrl;
+                        event.currentTarget.style.objectFit = 'contain';
+                        event.currentTarget.style.padding = '18px';
+                        event.currentTarget.style.background = '#111827';
+                    }
+                })
             ),
             h('div', { className: 'readbee-id-card-body' },
                 h('h3', null, name),
@@ -141,11 +157,12 @@ function TeamCard({ image, name, role, code }) {
 
 function Team() {
     const members = [
-        ['images/CuteBee3.png', 'Dr. Noelyn M. De Jesus', 'Capstone Adviser', 'ADVISER'],
-        ['images/team2.png', 'Glenmor A. Decilos', 'Web App Developer / Business Analyst', 'Web'],
-        ['images/team4.png', 'Cindy V. Certeza', 'Quality Assurance Specialist', 'QA'],
+        // IMPORTANT for Render/Linux: filenames and extensions must match GitHub exactly.
+        // These files should be in: public/landing-assets/images/
+        ['images/team1.png', 'Dr. Noelyn M. De Jesus', 'Capstone Adviser', 'ADVISER'],
+        ['images/team2.png', 'Glenmor A. Decilos', 'Web App Developer / Business Analyst', 'WEB'],
         ['images/team3.png', 'Carl Justine B. Butiong', 'Mobile App Developer', 'MOBILE'],
-
+        ['images/team4.png', 'Cindy V. Certeza', 'Quality Assurance Specialist', 'QA'],
     ];
 
     return h('section', { id: 'team', className: 'team section readbee-team-section py-5' },

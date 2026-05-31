@@ -141,7 +141,7 @@ function TeamCard({ image, name, role, code }) {
 
 function Team() {
     const members = [
-        ['images/team1.png', 'Dr. Noelyn M. De Jesus', 'Capstone Adviser', 'ADVISER'],
+        ['images/CuteBee3.png', 'Dr. Noelyn M. De Jesus', 'Capstone Adviser', 'ADVISER'],
         ['images/team2.png', 'Glenmor A. Decilos', 'Web App Developer / Business Analyst', 'Web'],
         ['images/team4.png', 'Cindy V. Certeza', 'Quality Assurance Specialist', 'QA'],
         ['images/team3.png', 'Carl Justine B. Butiong', 'Mobile App Developer', 'MOBILE'],

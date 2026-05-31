@@ -209,13 +209,19 @@ class SchoolAdminUserImportController extends Controller
                 continue;
             }
 
-            Mail::to($row['email'])->send(
-                new UserCredentialsMail(
-                    $row['full_name'],
-                    $row['email'],
-                    $password
-                )
-            );
+            try {
+                Mail::to($row['email'])->send(
+                    new UserCredentialsMail(
+                        $row['full_name'],
+                        $row['email'],
+                        $password
+                    )
+                );
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                $failedRows[] = 'Row ' . $row['row_number'] . ': Account created, but credentials email could not be sent.';
+            }
 
             $createdCount++;
         }
@@ -343,8 +349,8 @@ class SchoolAdminUserImportController extends Controller
                 $roleRow = $roleMap[$normalizedRole] ?? null;
                 if (! $roleRow) {
                     $errors['role'] = 'Role not found in database.';
-                } elseif (! isset($scopeMap[$roleRow['id']])) {
-                    $errors['role'] = 'School scope not found for role.';
+                } elseif (empty($scopeMap[$roleRow['id']] ?? null)) {
+                    $errors['role'] = 'School scope not found.';
                 }
             }
 
@@ -369,7 +375,6 @@ class SchoolAdminUserImportController extends Controller
             'Accept' => 'application/json',
         ])->get(env('SUPABASE_URL') . '/rest/v1/roles', [
             'select' => 'id,name',
-            'name' => 'in.(Principal,Evaluator)',
         ]);
 
         if (! $response->successful()) {
@@ -378,7 +383,11 @@ class SchoolAdminUserImportController extends Controller
 
         $map = [];
         foreach ($response->json() as $role) {
-            $map[strtolower($role['name'])] = $role;
+            $name = strtolower($role['name'] ?? '');
+
+            if (in_array($name, ['principal', 'evaluator'], true)) {
+                $map[$name] = $role;
+            }
         }
 
         return $map;
@@ -399,9 +408,28 @@ class SchoolAdminUserImportController extends Controller
             return [];
         }
 
+        $schoolScopes = collect($response->json());
+
+        // Principal and Evaluator now share the same school-level scope used by School Admin.
+        $schoolScope = $schoolScopes->first(function ($scope) {
+                return str_contains(strtolower($scope['name'] ?? ''), 'school admin');
+            })
+            ?? $schoolScopes->first(function ($scope) {
+                return strtolower($scope['name'] ?? '') === 'school';
+            })
+            ?? $schoolScopes->first();
+
+        if (! $schoolScope) {
+            return [];
+        }
+
+        $roleMap = $this->resolveRoleMap();
         $map = [];
-        foreach ($response->json() as $scope) {
-            $map[$scope['role_id']] = $scope;
+
+        foreach ($roleMap as $role) {
+            if (! empty($role['id'])) {
+                $map[$role['id']] = $schoolScope;
+            }
         }
 
         return $map;

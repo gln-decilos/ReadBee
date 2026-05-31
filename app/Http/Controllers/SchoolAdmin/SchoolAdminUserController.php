@@ -45,40 +45,20 @@ class SchoolAdminUserController extends Controller
             ]);
         }
 
-        $roleResponse = Http::withHeaders([
-            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Accept' => 'application/json',
-        ])->get(env('SUPABASE_URL') . '/rest/v1/roles', [
-            'id' => 'eq.' . $request->role_id,
-            'select' => 'id,name',
-        ]);
-
-        $role = $roleResponse->successful() ? ($roleResponse->json()[0] ?? null) : null;
+        $role = $this->findAllowedSchoolUserRole($request->role_id);
         $roleName = strtolower($role['name'] ?? '');
 
-        if (! $role || ! in_array($roleName, ['principal', 'evaluator'], true)) {
+        if (! $role) {
             return back()->withInput()->withErrors([
                 'role_id' => 'Invalid role selected. Only Principal and Evaluator roles are allowed for school users.',
             ]);
         }
 
-        $scopeResponse = Http::withHeaders([
-            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Accept' => 'application/json',
-        ])->get(env('SUPABASE_URL') . '/rest/v1/scopes', [
-            'role_id' => 'eq.' . $request->role_id,
-            'scope_type' => 'eq.school',
-            'select' => 'id,name,scope_type',
-            'limit' => 1,
-        ]);
-
-        $scope = $scopeResponse->successful() ? ($scopeResponse->json()[0] ?? null) : null;
+        $scope = $this->findSchoolScopeForRole($request->role_id, $roleName);
 
         if (! $scope) {
             return back()->withInput()->withErrors([
-                'role_id' => 'No school scope found for this role.',
+                'role_id' => 'No school scope found for this role. Please make sure the selected Principal/Evaluator role has a school scope in Supabase.',
             ]);
         }
 
@@ -195,17 +175,73 @@ class SchoolAdminUserController extends Controller
 
     public function roles()
     {
-        return Http::withHeaders([
+        $rolesResponse = Http::withHeaders($this->supabaseHeaders())
+            ->get(env('SUPABASE_URL') . '/rest/v1/roles', [
+                'select' => 'id,name,description',
+                'order' => 'name.asc',
+            ]);
+
+        if (! $rolesResponse->successful()) {
+            return [];
+        }
+
+        return collect($rolesResponse->json())
+            ->filter(function ($role) {
+                return in_array(strtolower($role['name'] ?? ''), ['principal', 'evaluator'], true);
+            })
+            ->values()
+            ->all();
+    }
+
+    private function supabaseHeaders(): array
+    {
+        return [
             'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
             'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
             'Accept' => 'application/json',
-        ])->get(
-            env('SUPABASE_URL') . '/rest/v1/roles',
-            [
+        ];
+    }
+
+    private function findAllowedSchoolUserRole(string $roleId): ?array
+    {
+        $response = Http::withHeaders($this->supabaseHeaders())
+            ->get(env('SUPABASE_URL') . '/rest/v1/roles', [
+                'id' => 'eq.' . $roleId,
                 'select' => 'id,name,description',
-                'name' => 'in.(Principal,Evaluator)',
-                'order' => 'name.asc',
-            ]
-        )->json();
+                'limit' => 1,
+            ]);
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $role = $response->json()[0] ?? null;
+        $roleName = strtolower($role['name'] ?? '');
+
+        return in_array($roleName, ['principal', 'evaluator'], true) ? $role : null;
+    }
+
+    private function findSchoolScopeForRole(string $roleId, string $roleName): ?array
+    {
+        $response = Http::withHeaders($this->supabaseHeaders())
+            ->get(env('SUPABASE_URL') . '/rest/v1/scopes', [
+                'scope_type' => 'eq.school',
+                'select' => 'id,role_id,name,scope_type',
+            ]);
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $schoolScopes = collect($response->json());
+
+        // Principal and Evaluator now share the same school-level scope used by School Admin.
+        return $schoolScopes->first(function ($scope) {
+                return str_contains(strtolower($scope['name'] ?? ''), 'school admin');
+            })
+            ?? $schoolScopes->first(function ($scope) {
+                return strtolower($scope['name'] ?? '') === 'school';
+            })
+            ?? $schoolScopes->first();
     }
 }

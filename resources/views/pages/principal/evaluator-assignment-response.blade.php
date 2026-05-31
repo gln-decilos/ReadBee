@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Assignment Confirmation' }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="icon" type="image/png" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('landing-assets/images/ReadBeefavicon.png') }}">
+
 </head>
 <body class="min-h-screen bg-gray-100 px-4 py-10">
     <div class="fixed inset-0 flex items-center justify-center bg-gray-900/60 px-4">

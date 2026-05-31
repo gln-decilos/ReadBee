@@ -160,22 +160,43 @@ Route::prefix('district-admin')->group(function () {
     });
 
     Route::get('scopes', function (\Illuminate\Http\Request $request) {
-        $roleId = $request->query('role_id');
+      $roleId = $request->query('role_id');
 
-        $query = 'select=id,name,description,scope_type';
+      $scopeType = null;
 
-        if ($roleId) {
-            $query .= "&role_id=eq.$roleId";
-        }
+      if ($roleId) {
+          $role = Http::withHeaders([
+              'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+              'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+              'Accept' => 'application/json',
+          ])->get(env('SUPABASE_URL') . "/rest/v1/roles?id=eq.$roleId&select=id,name")
+            ->json()[0] ?? null;
 
-        return Http::withHeaders([
-            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
-            'Accept' => 'application/json',
-        ])->get(
-            env('SUPABASE_URL') . "/rest/v1/scopes?$query"
-        )->json();
-    });
+          $roleName = strtolower(str_replace([' ', '-'], '_', trim($role['name'] ?? '')));
+
+          if (in_array($roleName, ['evaluator', 'principal'])) {
+              $scopeType = 'school';
+          }
+
+          if (in_array($roleName, ['district_supervisor', 'districtsupervisor'])) {
+              $scopeType = 'district';
+          }
+      }
+
+      $url = env('SUPABASE_URL') . '/rest/v1/scopes?select=id,name,description,scope_type';
+
+      if ($scopeType) {
+          $url .= "&scope_type=eq.$scopeType";
+      }
+
+      $url .= '&order=name.asc';
+
+      return Http::withHeaders([
+          'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+          'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+          'Accept' => 'application/json',
+      ])->get($url)->json();
+  });
 
     Route::get('districts', function () {
         return Http::withHeaders([

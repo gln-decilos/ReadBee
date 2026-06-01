@@ -7,9 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Mail\EvaluatorAssignmentMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Log;
 
 class PrincipalAssignEvaluatorController extends Controller
 {
@@ -189,7 +189,6 @@ class PrincipalAssignEvaluatorController extends Controller
         ]);
     }
 
-
     public function bulkStore(Request $request)
     {
         $validated = $request->validate([
@@ -205,15 +204,11 @@ class PrincipalAssignEvaluatorController extends Controller
         $assignedBy = session('supabase_user.id');
 
         if (! $schoolId) {
-            return response()->json([
-                'message' => 'No school assigned to your principal account.',
-            ], 403);
+            return response()->json(['message' => 'No school assigned to your principal account.'], 403);
         }
 
         if (! $assignedBy) {
-            return response()->json([
-                'message' => 'Your user session is missing. Please sign in again.',
-            ], 401);
+            return response()->json(['message' => 'Your user session is missing. Please sign in again.'], 401);
         }
 
         $schedule = $this->findSchedule($validated['schedule_id'], $schoolId, $validated['year_id']);
@@ -221,18 +216,14 @@ class PrincipalAssignEvaluatorController extends Controller
         if (! $schedule) {
             return response()->json([
                 'message' => 'The selected assessment schedule was not found for your school year.',
-                'errors' => [
-                    'schedule_id' => ['The selected assessment schedule was not found for your school year.'],
-                ],
+                'errors' => ['schedule_id' => ['The selected assessment schedule was not found for your school year.']],
             ], 422);
         }
 
         if (($schedule['status'] ?? '') === 'cancelled') {
             return response()->json([
                 'message' => 'Cancelled schedules cannot be assigned to evaluators.',
-                'errors' => [
-                    'schedule_id' => ['Cancelled schedules cannot be assigned to evaluators.'],
-                ],
+                'errors' => ['schedule_id' => ['Cancelled schedules cannot be assigned to evaluators.']],
             ], 422);
         }
 
@@ -250,37 +241,23 @@ class PrincipalAssignEvaluatorController extends Controller
             $sectionKey = $schedule['schedule_id'] . '|' . $row['section_id'];
 
             if (isset($seenSectionKeys[$sectionKey])) {
-                $skipped[] = [
-                    'row' => $rowNumber,
-                    'reason' => 'Duplicate section in this bulk submission.',
-                ];
+                $skipped[] = ['row' => $rowNumber, 'reason' => 'Duplicate section in this bulk submission.'];
                 continue;
             }
 
             $seenSectionKeys[$sectionKey] = true;
 
-            $section = $this->findSection(
-                $row['section_id'],
-                $schoolId,
-                $validated['year_id'],
-                $row['grade_level_id']
-            );
+            $section = $this->findSection($row['section_id'], $schoolId, $validated['year_id'], $row['grade_level_id']);
 
             if (! $section) {
-                $skipped[] = [
-                    'row' => $rowNumber,
-                    'reason' => 'The selected section does not belong to the selected grade and school year.',
-                ];
+                $skipped[] = ['row' => $rowNumber, 'reason' => 'The selected section does not belong to the selected grade and school year.'];
                 continue;
             }
 
             $evaluator = $evaluators->get($row['evaluator_user_id']);
 
             if (! $evaluator) {
-                $skipped[] = [
-                    'row' => $rowNumber,
-                    'reason' => 'The selected evaluator is not assigned to your school.',
-                ];
+                $skipped[] = ['row' => $rowNumber, 'reason' => 'The selected evaluator is not assigned to your school.'];
                 continue;
             }
 
@@ -361,32 +338,24 @@ class PrincipalAssignEvaluatorController extends Controller
         $schoolId = $this->principalSchoolId();
 
         if (! $schoolId) {
-            return response()->json([
-                'message' => 'No school assigned to your principal account.',
-            ], 403);
+            return response()->json(['message' => 'No school assigned to your principal account.'], 403);
         }
 
         $assignment = $this->findAssignmentForSchool($assignmentId, $schoolId);
 
         if (! $assignment) {
-            return response()->json([
-                'message' => 'Evaluator assignment not found for your school.',
-            ], 404);
+            return response()->json(['message' => 'Evaluator assignment not found for your school.'], 404);
         }
 
         if (($assignment['confirmation_status'] ?? null) === 'confirmed') {
-            return response()->json([
-                'message' => 'This evaluator has already confirmed the assignment. No follow-up is needed.',
-            ], 422);
+            return response()->json(['message' => 'This evaluator has already confirmed the assignment. No follow-up is needed.'], 422);
         }
 
         $formatted = $this->hydrateSingleAssignment($assignment, $schoolId);
         $mailSent = $this->sendAssignmentEmail($formatted);
 
         if (! $mailSent) {
-            return response()->json([
-                'message' => 'The follow-up email could not be sent. Check your mail configuration.',
-            ], 500);
+            return response()->json(['message' => 'The follow-up email could not be sent. Check your mail configuration.'], 500);
         }
 
         return response()->json([
@@ -400,23 +369,17 @@ class PrincipalAssignEvaluatorController extends Controller
         $schoolId = $this->principalSchoolId();
 
         if (! $schoolId) {
-            return response()->json([
-                'message' => 'No school assigned to your principal account.',
-            ], 403);
+            return response()->json(['message' => 'No school assigned to your principal account.'], 403);
         }
 
         $assignment = $this->findAssignmentForSchool($assignmentId, $schoolId);
 
         if (! $assignment) {
-            return response()->json([
-                'message' => 'Evaluator assignment not found for your school.',
-            ], 404);
+            return response()->json(['message' => 'Evaluator assignment not found for your school.'], 404);
         }
 
         if ($this->assignmentHasAssessmentRecords($assignmentId)) {
-            return response()->json([
-                'message' => 'This assignment cannot be deleted because assessment records already reference it.',
-            ], 422);
+            return response()->json(['message' => 'This assignment cannot be deleted because assessment records already reference it.'], 422);
         }
 
         $response = Http::withHeaders($this->supabaseHeaders())
@@ -424,10 +387,7 @@ class PrincipalAssignEvaluatorController extends Controller
 
         if (! $response->successful()) {
             report('Failed to delete evaluator assignment: ' . $response->body());
-
-            return response()->json([
-                'message' => 'Failed to delete evaluator assignment. Check Laravel logs for the Supabase error.',
-            ], 500);
+            return response()->json(['message' => 'Failed to delete evaluator assignment. Check Laravel logs for the Supabase error.'], 500);
         }
 
         return response()->json([
@@ -704,7 +664,7 @@ class PrincipalAssignEvaluatorController extends Controller
             'schedule_label' => $schedule['label'] ?? $this->dateLabel($assignment['assessment_date'] ?? null),
             'section_name' => $section['section_name'] ?? 'Unknown Section',
             'grade_level_id' => $section['grade_level_id'] ?? null,
-            'grade_label' => $section['grade_number'] ?? null ? 'Grade ' . $section['grade_number'] : 'Grade',
+            'grade_label' => ($section['grade_number'] ?? null) ? 'Grade ' . $section['grade_number'] : 'Grade',
             'adviser_name' => $section['adviser_name'] ?? null,
             'evaluator_name' => $evaluator['full_name'] ?? 'Unknown Evaluator',
             'evaluator_email' => $evaluator['email'] ?? null,
@@ -918,71 +878,67 @@ class PrincipalAssignEvaluatorController extends Controller
     }
 
     private function sendAssignmentEmail(array $assignment): bool
-{
-    $email = $assignment['evaluator_email'] ?? null;
+    {
+        $email = $assignment['evaluator_email'] ?? null;
 
-    if (! $email) {
-        \Log::error('Evaluator email missing.', [
-            'assignment' => $assignment,
-        ]);
+        if (! $email) {
+            Log::error('Evaluator email missing.', [
+                'assignment' => $assignment,
+            ]);
 
-        return false;
+            return false;
+        }
+
+        $principalName = session('supabase_user.full_name')
+            ?? session('supabase_user.email')
+            ?? 'School Principal';
+
+        try {
+            URL::forceRootUrl(rtrim(config('app.url', 'https://readbee.onrender.com'), '/'));
+            URL::forceScheme('https');
+
+            $confirmUrl = URL::temporarySignedRoute(
+                'principal.assign-evaluator.confirm',
+                now()->addDays(7),
+                [
+                    'assignmentId' => $assignment['assignment_id'],
+                ]
+            );
+
+            Log::info('Sending evaluator assignment email...', [
+                'to' => $email,
+                'confirm_url' => $confirmUrl,
+            ]);
+
+            Mail::to($email)->send(
+                new EvaluatorAssignmentMail(
+                    $assignment['evaluator_name'] ?? 'Evaluator',
+                    $assignment['school_year_label'] ?? 'School Year',
+                    $assignment['quarter_label'] ?? 'Quarter',
+                    $this->dateLabel($assignment['assessment_date'] ?? null),
+                    $assignment['grade_label'] ?? 'Grade',
+                    $assignment['section_name'] ?? 'Section',
+                    $principalName,
+                    $confirmUrl
+                )
+            );
+
+            Log::info('Evaluator assignment email sent successfully.', [
+                'to' => $email,
+            ]);
+
+            return true;
+        } catch (\Throwable $exception) {
+            Log::error('Evaluator assignment email failed.', [
+                'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'trace' => $exception->getTraceAsString(),
+            ]);
+
+            return false;
+        }
     }
-
-    $principalName = session('supabase_user.full_name')
-        ?? session('supabase_user.email')
-        ?? 'School Principal';
-
-    try {
-
-        // Force hosted URL for Render production
-        URL::forceRootUrl(rtrim(config('app.url', 'https://readbee.onrender.com'), '/'));
-        URL::forceScheme('https');
-
-        $confirmUrl = URL::temporarySignedRoute(
-            'principal.assign-evaluator.confirm',
-            now()->addDays(7),
-            [
-                'assignmentId' => $assignment['assignment_id'],
-            ]
-        );
-
-        \Log::info('Sending evaluator assignment email...', [
-            'to' => $email,
-            'confirm_url' => $confirmUrl,
-        ]);
-
-        Mail::to($email)->send(
-            new EvaluatorAssignmentMail(
-                $assignment['evaluator_name'] ?? 'Evaluator',
-                $assignment['school_year_label'] ?? 'School Year',
-                $assignment['quarter_label'] ?? 'Quarter',
-                $this->dateLabel($assignment['assessment_date'] ?? null),
-                $assignment['grade_label'] ?? 'Grade',
-                $assignment['section_name'] ?? 'Section',
-                $principalName,
-                $confirmUrl
-            )
-        );
-
-        \Log::info('Evaluator assignment email sent successfully.', [
-            'to' => $email,
-        ]);
-
-        return true;
-
-    } catch (\Throwable $exception) {
-
-        \Log::error('Evaluator assignment email failed.', [
-            'message' => $exception->getMessage(),
-            'file' => $exception->getFile(),
-            'line' => $exception->getLine(),
-            'trace' => $exception->getTraceAsString(),
-        ]);
-
-        return false;
-    }
-}
 
     private function schoolYearLabel(array $year): string
     {

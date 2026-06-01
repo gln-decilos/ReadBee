@@ -178,24 +178,27 @@ class PrincipalAssignEvaluatorController extends Controller
             $schoolYears
         );
 
+        session()->forget('mail_error_debug');
         $mailSent = $this->sendAssignmentEmail($formatted);
 
         return response()->json([
-        'message' => $mailSent
-            ? 'Evaluator assigned successfully. Confirmation email was sent.'
-            : 'Evaluator assigned successfully, but the confirmation email could not be sent. Check your mail configuration.',
-        'assignment' => $formatted,
-        'mail_sent' => $mailSent,
-        'debug' => [
-            'app_url' => config('app.url'),
-            'mail_mailer' => config('mail.default'),
-            'mail_host' => config('mail.mailers.smtp.host'),
-            'mail_port' => config('mail.mailers.smtp.port'),
-            'mail_username' => config('mail.mailers.smtp.username'),
-            'mail_from' => config('mail.from.address'),
-        ],
-    ]);
+            'message' => $mailSent
+                ? 'Evaluator assigned successfully. Confirmation email was sent.'
+                : 'Evaluator assigned successfully, but the confirmation email could not be sent. Check your mail configuration.',
+            'assignment' => $formatted,
+            'mail_sent' => $mailSent,
+            'mail_error' => session('mail_error_debug'),
+            'debug' => [
+                'app_url' => config('app.url'),
+                'mail_mailer' => config('mail.default'),
+                'mail_host' => config('mail.mailers.smtp.host'),
+                'mail_port' => config('mail.mailers.smtp.port'),
+                'mail_username' => config('mail.mailers.smtp.username'),
+                'mail_from' => config('mail.from.address'),
+            ],
+        ]);
     }
+
 
     public function bulkStore(Request $request)
     {
@@ -212,11 +215,15 @@ class PrincipalAssignEvaluatorController extends Controller
         $assignedBy = session('supabase_user.id');
 
         if (! $schoolId) {
-            return response()->json(['message' => 'No school assigned to your principal account.'], 403);
+            return response()->json([
+                'message' => 'No school assigned to your principal account.',
+            ], 403);
         }
 
         if (! $assignedBy) {
-            return response()->json(['message' => 'Your user session is missing. Please sign in again.'], 401);
+            return response()->json([
+                'message' => 'Your user session is missing. Please sign in again.',
+            ], 401);
         }
 
         $schedule = $this->findSchedule($validated['schedule_id'], $schoolId, $validated['year_id']);
@@ -224,14 +231,18 @@ class PrincipalAssignEvaluatorController extends Controller
         if (! $schedule) {
             return response()->json([
                 'message' => 'The selected assessment schedule was not found for your school year.',
-                'errors' => ['schedule_id' => ['The selected assessment schedule was not found for your school year.']],
+                'errors' => [
+                    'schedule_id' => ['The selected assessment schedule was not found for your school year.'],
+                ],
             ], 422);
         }
 
         if (($schedule['status'] ?? '') === 'cancelled') {
             return response()->json([
                 'message' => 'Cancelled schedules cannot be assigned to evaluators.',
-                'errors' => ['schedule_id' => ['Cancelled schedules cannot be assigned to evaluators.']],
+                'errors' => [
+                    'schedule_id' => ['Cancelled schedules cannot be assigned to evaluators.'],
+                ],
             ], 422);
         }
 
@@ -249,23 +260,37 @@ class PrincipalAssignEvaluatorController extends Controller
             $sectionKey = $schedule['schedule_id'] . '|' . $row['section_id'];
 
             if (isset($seenSectionKeys[$sectionKey])) {
-                $skipped[] = ['row' => $rowNumber, 'reason' => 'Duplicate section in this bulk submission.'];
+                $skipped[] = [
+                    'row' => $rowNumber,
+                    'reason' => 'Duplicate section in this bulk submission.',
+                ];
                 continue;
             }
 
             $seenSectionKeys[$sectionKey] = true;
 
-            $section = $this->findSection($row['section_id'], $schoolId, $validated['year_id'], $row['grade_level_id']);
+            $section = $this->findSection(
+                $row['section_id'],
+                $schoolId,
+                $validated['year_id'],
+                $row['grade_level_id']
+            );
 
             if (! $section) {
-                $skipped[] = ['row' => $rowNumber, 'reason' => 'The selected section does not belong to the selected grade and school year.'];
+                $skipped[] = [
+                    'row' => $rowNumber,
+                    'reason' => 'The selected section does not belong to the selected grade and school year.',
+                ];
                 continue;
             }
 
             $evaluator = $evaluators->get($row['evaluator_user_id']);
 
             if (! $evaluator) {
-                $skipped[] = ['row' => $rowNumber, 'reason' => 'The selected evaluator is not assigned to your school.'];
+                $skipped[] = [
+                    'row' => $rowNumber,
+                    'reason' => 'The selected evaluator is not assigned to your school.',
+                ];
                 continue;
             }
 
@@ -346,24 +371,32 @@ class PrincipalAssignEvaluatorController extends Controller
         $schoolId = $this->principalSchoolId();
 
         if (! $schoolId) {
-            return response()->json(['message' => 'No school assigned to your principal account.'], 403);
+            return response()->json([
+                'message' => 'No school assigned to your principal account.',
+            ], 403);
         }
 
         $assignment = $this->findAssignmentForSchool($assignmentId, $schoolId);
 
         if (! $assignment) {
-            return response()->json(['message' => 'Evaluator assignment not found for your school.'], 404);
+            return response()->json([
+                'message' => 'Evaluator assignment not found for your school.',
+            ], 404);
         }
 
         if (($assignment['confirmation_status'] ?? null) === 'confirmed') {
-            return response()->json(['message' => 'This evaluator has already confirmed the assignment. No follow-up is needed.'], 422);
+            return response()->json([
+                'message' => 'This evaluator has already confirmed the assignment. No follow-up is needed.',
+            ], 422);
         }
 
         $formatted = $this->hydrateSingleAssignment($assignment, $schoolId);
         $mailSent = $this->sendAssignmentEmail($formatted);
 
         if (! $mailSent) {
-            return response()->json(['message' => 'The follow-up email could not be sent. Check your mail configuration.'], 500);
+            return response()->json([
+                'message' => 'The follow-up email could not be sent. Check your mail configuration.',
+            ], 500);
         }
 
         return response()->json([
@@ -377,17 +410,23 @@ class PrincipalAssignEvaluatorController extends Controller
         $schoolId = $this->principalSchoolId();
 
         if (! $schoolId) {
-            return response()->json(['message' => 'No school assigned to your principal account.'], 403);
+            return response()->json([
+                'message' => 'No school assigned to your principal account.',
+            ], 403);
         }
 
         $assignment = $this->findAssignmentForSchool($assignmentId, $schoolId);
 
         if (! $assignment) {
-            return response()->json(['message' => 'Evaluator assignment not found for your school.'], 404);
+            return response()->json([
+                'message' => 'Evaluator assignment not found for your school.',
+            ], 404);
         }
 
         if ($this->assignmentHasAssessmentRecords($assignmentId)) {
-            return response()->json(['message' => 'This assignment cannot be deleted because assessment records already reference it.'], 422);
+            return response()->json([
+                'message' => 'This assignment cannot be deleted because assessment records already reference it.',
+            ], 422);
         }
 
         $response = Http::withHeaders($this->supabaseHeaders())
@@ -395,7 +434,10 @@ class PrincipalAssignEvaluatorController extends Controller
 
         if (! $response->successful()) {
             report('Failed to delete evaluator assignment: ' . $response->body());
-            return response()->json(['message' => 'Failed to delete evaluator assignment. Check Laravel logs for the Supabase error.'], 500);
+
+            return response()->json([
+                'message' => 'Failed to delete evaluator assignment. Check Laravel logs for the Supabase error.',
+            ], 500);
         }
 
         return response()->json([
@@ -672,7 +714,7 @@ class PrincipalAssignEvaluatorController extends Controller
             'schedule_label' => $schedule['label'] ?? $this->dateLabel($assignment['assessment_date'] ?? null),
             'section_name' => $section['section_name'] ?? 'Unknown Section',
             'grade_level_id' => $section['grade_level_id'] ?? null,
-            'grade_label' => ($section['grade_number'] ?? null) ? 'Grade ' . $section['grade_number'] : 'Grade',
+            'grade_label' => $section['grade_number'] ?? null ? 'Grade ' . $section['grade_number'] : 'Grade',
             'adviser_name' => $section['adviser_name'] ?? null,
             'evaluator_name' => $evaluator['full_name'] ?? 'Unknown Evaluator',
             'evaluator_email' => $evaluator['email'] ?? null,
@@ -890,6 +932,8 @@ class PrincipalAssignEvaluatorController extends Controller
         $email = $assignment['evaluator_email'] ?? null;
 
         if (! $email) {
+            session()->flash('mail_error_debug', 'Evaluator email is missing.');
+
             Log::error('Evaluator email missing.', [
                 'assignment' => $assignment,
             ]);
@@ -937,6 +981,8 @@ class PrincipalAssignEvaluatorController extends Controller
 
             return true;
         } catch (\Throwable $exception) {
+            session()->flash('mail_error_debug', $exception->getMessage());
+
             Log::error('Evaluator assignment email failed.', [
                 'message' => $exception->getMessage(),
                 'file' => $exception->getFile(),

@@ -11,10 +11,26 @@ class DistrictAdminController extends Controller
     public function dashboard()
     {
         $menuGroups = DistrictAdminMenuHelper::getMenuGroups();
+        $activeDesignation = session('active_designation', []);
+        $districtId = $activeDesignation['district_id'] ?? null;
+        $districtName = $activeDesignation['district_name'] ?? $this->fetchDistrictName($districtId) ?? 'Your District';
+
+        $dashboard = [
+            'districtName' => $districtName,
+            'schools' => $this->safeCount('schools', $districtId ? ['district_id' => 'eq.' . $districtId] : [], 'school_id'),
+            'municipalities' => $this->safeCount('municipalities', $districtId ? ['district_id' => 'eq.' . $districtId] : [], 'municipality_id'),
+            'users' => $this->safeCount('user_roles', $districtId ? ['district_id' => 'eq.' . $districtId] : [], 'user_role_id'),
+            'schoolYears' => $this->safeCount('school_year', [], 'year_id'),
+            'recentSchools' => $this->safeRows('schools', [
+                'select' => 'school_id,name,logo,address,email,created_at,municipalities(municipal_name)',
+                'order' => 'created_at.desc',
+                'limit' => 5,
+            ] + ($districtId ? ['district_id' => 'eq.' . $districtId] : [])),
+        ];
 
         return view(
             'pages.district-admin.district-admin-dashboard',
-            compact('menuGroups')
+            compact('menuGroups', 'dashboard')
         );
     }
 
@@ -230,4 +246,75 @@ class DistrictAdminController extends Controller
 
         return 0;
     }
+    private function supabaseHeaders(): array
+    {
+        return [
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ];
+    }
+
+    private function supabaseUrl(): string
+    {
+        return rtrim((string) env('SUPABASE_URL'), '/');
+    }
+
+    private function safeCount(string $table, array $filters = [], string $select = '*'): int
+    {
+        try {
+            $response = Http::withHeaders(array_merge($this->supabaseHeaders(), [
+                'Prefer' => 'count=exact',
+                'Range-Unit' => 'items',
+                'Range' => '0-0',
+            ]))->get($this->supabaseUrl() . '/rest/v1/' . $table, array_merge([
+                'select' => $select,
+                'limit' => 1,
+            ], $filters));
+
+            if (! $response->successful()) {
+                report('Failed to count ' . $table . ': ' . $response->body());
+                return 0;
+            }
+
+            $contentRange = $response->header('Content-Range');
+
+            if ($contentRange && preg_match('/\/(\d+|\*)$/', $contentRange, $matches) && $matches[1] !== '*') {
+                return (int) $matches[1];
+            }
+
+            return count($response->json() ?? []);
+        } catch (\Throwable $exception) {
+            report($exception);
+            return 0;
+        }
+    }
+
+    private function fetchDistrictName(?string $districtId): ?string
+    {
+        if (! $districtId) {
+            return null;
+        }
+
+        $rows = $this->safeRows('districts', [
+            'select' => 'district_name',
+            'district_id' => 'eq.' . $districtId,
+            'limit' => 1,
+        ]);
+
+        return $rows[0]['district_name'] ?? null;
+    }
+
+    private function safeRows(string $table, array $query = []): array
+    {
+        try {
+            $response = Http::withHeaders($this->supabaseHeaders())->get($this->supabaseUrl() . '/rest/v1/' . $table, $query);
+
+            return $response->successful() ? ($response->json() ?? []) : [];
+        } catch (\Throwable $exception) {
+            report($exception);
+            return [];
+        }
+    }
+
 }

@@ -11,8 +11,29 @@ class SchoolAdminController extends Controller
     public function dashboard()
     {
         $menuGroups = SchoolAdminMenuHelper::getMenuGroups();
+        $activeDesignation = session('active_designation', []);
+        $schoolId = $activeDesignation['school_id'] ?? null;
+        $schoolIdentity = $this->fetchSchoolIdentity($schoolId);
+        $schoolName = $activeDesignation['school_name'] ?? $schoolIdentity['name'] ?? 'Your School';
+        $schoolLogo = $activeDesignation['school_logo'] ?? $activeDesignation['logo'] ?? $schoolIdentity['logo'] ?? null;
 
-        return view('pages.school-admin.school-admin-dashboard', compact('menuGroups'));
+        $schoolFilter = $schoolId ? ['school_id' => 'eq.' . $schoolId] : [];
+
+        $dashboard = [
+            'schoolName' => $schoolName,
+            'schoolLogo' => $schoolLogo,
+            'users' => $this->safeCount('user_roles', $schoolFilter, 'user_role_id'),
+            'classes' => $this->safeCount('class_sections', array_merge($schoolFilter, ['status' => 'neq.archived']), 'section_id'),
+            'gradeLevels' => $this->safeCount('grade_levels', $schoolFilter, 'grade_level_id'),
+            'students' => $this->safeCount('pupils', array_merge($schoolFilter, ['status' => 'eq.enrolled']), 'pupil_id'),
+            'recentSections' => $this->safeRows('class_sections', array_merge([
+                'select' => 'section_id,section_name,adviser_name,status,created_at,grade_levels(grade_number),school_year(start_date,end_date)',
+                'order' => 'created_at.desc',
+                'limit' => 5,
+            ], $schoolFilter)),
+        ];
+
+        return view('pages.school-admin.school-admin-dashboard', compact('menuGroups', 'dashboard'));
     }
 
     public function profile()
@@ -111,4 +132,75 @@ class SchoolAdminController extends Controller
             'perPage' => 10,
         ]);
     }
+    private function supabaseHeaders(): array
+    {
+        return [
+            'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
+            'Accept' => 'application/json',
+        ];
+    }
+
+    private function supabaseUrl(): string
+    {
+        return rtrim((string) env('SUPABASE_URL'), '/');
+    }
+
+    private function safeCount(string $table, array $filters = [], string $select = '*'): int
+    {
+        try {
+            $response = Http::withHeaders(array_merge($this->supabaseHeaders(), [
+                'Prefer' => 'count=exact',
+                'Range-Unit' => 'items',
+                'Range' => '0-0',
+            ]))->get($this->supabaseUrl() . '/rest/v1/' . $table, array_merge([
+                'select' => $select,
+                'limit' => 1,
+            ], $filters));
+
+            if (! $response->successful()) {
+                report('Failed to count ' . $table . ': ' . $response->body());
+                return 0;
+            }
+
+            $contentRange = $response->header('Content-Range');
+
+            if ($contentRange && preg_match('/\/(\d+|\*)$/', $contentRange, $matches) && $matches[1] !== '*') {
+                return (int) $matches[1];
+            }
+
+            return count($response->json() ?? []);
+        } catch (\Throwable $exception) {
+            report($exception);
+            return 0;
+        }
+    }
+
+    private function fetchSchoolIdentity(?string $schoolId): array
+    {
+        if (! $schoolId) {
+            return [];
+        }
+
+        $rows = $this->safeRows('schools', [
+            'select' => 'name,logo',
+            'school_id' => 'eq.' . $schoolId,
+            'limit' => 1,
+        ]);
+
+        return $rows[0] ?? [];
+    }
+
+    private function safeRows(string $table, array $query = []): array
+    {
+        try {
+            $response = Http::withHeaders($this->supabaseHeaders())->get($this->supabaseUrl() . '/rest/v1/' . $table, $query);
+
+            return $response->successful() ? ($response->json() ?? []) : [];
+        } catch (\Throwable $exception) {
+            report($exception);
+            return [];
+        }
+    }
+
 }

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Log;
 
 class PrincipalAssignEvaluatorController extends Controller
 {
@@ -917,28 +918,42 @@ class PrincipalAssignEvaluatorController extends Controller
     }
 
     private function sendAssignmentEmail(array $assignment): bool
-    {
-        $email = $assignment['evaluator_email'] ?? null;
+{
+    $email = $assignment['evaluator_email'] ?? null;
 
-        if (! $email) {
-            return false;
-        }
+    if (! $email) {
+        \Log::error('Evaluator email missing.', [
+            'assignment' => $assignment,
+        ]);
 
-        $principalName = session('supabase_user.full_name')
-            ?? session('supabase_user.email')
-            ?? 'School Principal';
+        return false;
+    }
 
-        try {
-            // Force evaluator confirmation links to use the hosted Render URL,
-            // even when the assignment email is created from localhost.
-            URL::forceRootUrl(rtrim(config('app.url', 'https://readbee.onrender.com'), '/'));
-            URL::forceScheme('https');
+    $principalName = session('supabase_user.full_name')
+        ?? session('supabase_user.email')
+        ?? 'School Principal';
 
-            $confirmUrl = URL::temporarySignedRoute('principal.assign-evaluator.confirm', now()->addDays(7), [
+    try {
+
+        // Force hosted URL for Render production
+        URL::forceRootUrl(rtrim(config('app.url', 'https://readbee.onrender.com'), '/'));
+        URL::forceScheme('https');
+
+        $confirmUrl = URL::temporarySignedRoute(
+            'principal.assign-evaluator.confirm',
+            now()->addDays(7),
+            [
                 'assignmentId' => $assignment['assignment_id'],
-            ]);
+            ]
+        );
 
-            Mail::to($email)->send(new EvaluatorAssignmentMail(
+        \Log::info('Sending evaluator assignment email...', [
+            'to' => $email,
+            'confirm_url' => $confirmUrl,
+        ]);
+
+        Mail::to($email)->send(
+            new EvaluatorAssignmentMail(
                 $assignment['evaluator_name'] ?? 'Evaluator',
                 $assignment['school_year_label'] ?? 'School Year',
                 $assignment['quarter_label'] ?? 'Quarter',
@@ -947,14 +962,27 @@ class PrincipalAssignEvaluatorController extends Controller
                 $assignment['section_name'] ?? 'Section',
                 $principalName,
                 $confirmUrl
-            ));
+            )
+        );
 
-            return true;
-        } catch (\Throwable $exception) {
-            report($exception);
-            return false;
-        }
+        \Log::info('Evaluator assignment email sent successfully.', [
+            'to' => $email,
+        ]);
+
+        return true;
+
+    } catch (\Throwable $exception) {
+
+        \Log::error('Evaluator assignment email failed.', [
+            'message' => $exception->getMessage(),
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+            'trace' => $exception->getTraceAsString(),
+        ]);
+
+        return false;
     }
+}
 
     private function schoolYearLabel(array $year): string
     {

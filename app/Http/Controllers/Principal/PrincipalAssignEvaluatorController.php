@@ -181,12 +181,20 @@ class PrincipalAssignEvaluatorController extends Controller
         $mailSent = $this->sendAssignmentEmail($formatted);
 
         return response()->json([
-            'message' => $mailSent
-                ? 'Evaluator assigned successfully. Confirmation email was sent.'
-                : 'Evaluator assigned successfully, but the confirmation email could not be sent. Check your mail configuration.',
-            'assignment' => $formatted,
-            'mail_sent' => $mailSent,
-        ]);
+        'message' => $mailSent
+            ? 'Evaluator assigned successfully. Confirmation email was sent.'
+            : 'Evaluator assigned successfully, but the confirmation email could not be sent. Check your mail configuration.',
+        'assignment' => $formatted,
+        'mail_sent' => $mailSent,
+        'debug' => [
+            'app_url' => config('app.url'),
+            'mail_mailer' => config('mail.default'),
+            'mail_host' => config('mail.mailers.smtp.host'),
+            'mail_port' => config('mail.mailers.smtp.port'),
+            'mail_username' => config('mail.mailers.smtp.username'),
+            'mail_from' => config('mail.from.address'),
+        ],
+    ]);
     }
 
     public function bulkStore(Request $request)

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\UserCredentialsMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -46,7 +47,6 @@ class SchoolAdminUserController extends Controller
         }
 
         $role = $this->findAllowedSchoolUserRole($request->role_id);
-        $roleName = strtolower($role['name'] ?? '');
 
         if (! $role) {
             return back()->withInput()->withErrors([
@@ -54,6 +54,7 @@ class SchoolAdminUserController extends Controller
             ]);
         }
 
+        $roleName = strtolower($role['name'] ?? '');
         $scope = $this->findSchoolScopeForRole($request->role_id, $roleName);
 
         if (! $scope) {
@@ -75,6 +76,12 @@ class SchoolAdminUserController extends Controller
         ]);
 
         if (! $authResponse->successful()) {
+            Log::error('Failed to create Supabase auth user from School Admin.', [
+                'email' => $request->email,
+                'status' => $authResponse->status(),
+                'body' => $authResponse->body(),
+            ]);
+
             return back()->with('error', 'Failed to create user.');
         }
 
@@ -92,6 +99,13 @@ class SchoolAdminUserController extends Controller
         ]);
 
         if (! $profileResponse->successful()) {
+            Log::error('Failed to save profile from School Admin user creation.', [
+                'email' => $request->email,
+                'user_id' => $authUser['id'] ?? null,
+                'status' => $profileResponse->status(),
+                'body' => $profileResponse->body(),
+            ]);
+
             Http::withHeaders([
                 'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
                 'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
@@ -115,6 +129,13 @@ class SchoolAdminUserController extends Controller
         ]);
 
         if (! $designationResponse->successful()) {
+            Log::error('Failed to assign School Admin-created user role.', [
+                'email' => $request->email,
+                'user_id' => $authUser['id'] ?? null,
+                'status' => $designationResponse->status(),
+                'body' => $designationResponse->body(),
+            ]);
+
             Http::withHeaders([
                 'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
                 'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
@@ -137,11 +158,19 @@ class SchoolAdminUserController extends Controller
                 )
             );
         } catch (\Throwable $exception) {
-            report($exception);
+            Log::error('School Admin user credentials email failed.', [
+                'email' => $request->email,
+                'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'mail_mailer' => config('mail.default'),
+                'mail_from' => config('mail.from.address'),
+            ]);
 
             return redirect()
                 ->route('school-admin.users.index')
-                ->with('success', 'User created successfully, but credentials email could not be sent. Check mail configuration.');
+                ->with('success', 'User created successfully, but credentials email could not be sent.')
+                ->with('mail_error', $exception->getMessage());
         }
 
         return redirect()
@@ -182,6 +211,11 @@ class SchoolAdminUserController extends Controller
             ]);
 
         if (! $rolesResponse->successful()) {
+            Log::error('Failed to fetch school admin allowed roles.', [
+                'status' => $rolesResponse->status(),
+                'body' => $rolesResponse->body(),
+            ]);
+
             return [];
         }
 
@@ -212,6 +246,12 @@ class SchoolAdminUserController extends Controller
             ]);
 
         if (! $response->successful()) {
+            Log::error('Failed to find allowed school user role.', [
+                'role_id' => $roleId,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
             return null;
         }
 
@@ -230,12 +270,18 @@ class SchoolAdminUserController extends Controller
             ]);
 
         if (! $response->successful()) {
+            Log::error('Failed to find school scope for role.', [
+                'role_id' => $roleId,
+                'role_name' => $roleName,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
             return null;
         }
 
         $schoolScopes = collect($response->json());
 
-        // Principal and Evaluator now share the same school-level scope used by School Admin.
         return $schoolScopes->first(function ($scope) {
                 return str_contains(strtolower($scope['name'] ?? ''), 'school admin');
             })

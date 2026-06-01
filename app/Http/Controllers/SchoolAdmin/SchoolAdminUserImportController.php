@@ -7,6 +7,7 @@ use App\Helpers\SchoolAdminMenuHelper;
 use App\Mail\UserCredentialsMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -128,6 +129,7 @@ class SchoolAdminUserImportController extends Controller
         $scopeMap = $this->resolveScopeMap();
 
         $createdCount = 0;
+        $emailSentCount = 0;
         $failedRows = [];
 
         foreach ($rows as $row) {
@@ -153,6 +155,13 @@ class SchoolAdminUserImportController extends Controller
             ]);
 
             if (! $authResponse->successful()) {
+                Log::error('Import failed to create Supabase auth user.', [
+                    'row' => $row['row_number'],
+                    'email' => $row['email'],
+                    'status' => $authResponse->status(),
+                    'body' => $authResponse->body(),
+                ]);
+
                 $failedRows[] = 'Row ' . $row['row_number'] . ': Failed to create auth user.';
                 continue;
             }
@@ -171,6 +180,14 @@ class SchoolAdminUserImportController extends Controller
             ]);
 
             if (! $profileResponse->successful()) {
+                Log::error('Import failed to save profile.', [
+                    'row' => $row['row_number'],
+                    'email' => $row['email'],
+                    'user_id' => $authUser['id'] ?? null,
+                    'status' => $profileResponse->status(),
+                    'body' => $profileResponse->body(),
+                ]);
+
                 Http::withHeaders([
                     'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
                     'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
@@ -195,6 +212,14 @@ class SchoolAdminUserImportController extends Controller
             ]);
 
             if (! $designationResponse->successful()) {
+                Log::error('Import failed to assign user role.', [
+                    'row' => $row['row_number'],
+                    'email' => $row['email'],
+                    'user_id' => $authUser['id'] ?? null,
+                    'status' => $designationResponse->status(),
+                    'body' => $designationResponse->body(),
+                ]);
+
                 Http::withHeaders([
                     'apikey' => env('SUPABASE_SERVICE_ROLE_KEY'),
                     'Authorization' => 'Bearer ' . env('SUPABASE_SERVICE_ROLE_KEY'),
@@ -209,6 +234,8 @@ class SchoolAdminUserImportController extends Controller
                 continue;
             }
 
+            $createdCount++;
+
             try {
                 Mail::to($row['email'])->send(
                     new UserCredentialsMail(
@@ -217,13 +244,21 @@ class SchoolAdminUserImportController extends Controller
                         $password
                     )
                 );
+
+                $emailSentCount++;
             } catch (\Throwable $exception) {
-                report($exception);
+                Log::error('School Admin import user credentials email failed.', [
+                    'row' => $row['row_number'],
+                    'email' => $row['email'],
+                    'message' => $exception->getMessage(),
+                    'file' => $exception->getFile(),
+                    'line' => $exception->getLine(),
+                    'mail_mailer' => config('mail.default'),
+                    'mail_from' => config('mail.from.address'),
+                ]);
 
-                $failedRows[] = 'Row ' . $row['row_number'] . ': Account created, but credentials email could not be sent.';
+                $failedRows[] = 'Row ' . $row['row_number'] . ': Account created, but credentials email could not be sent. ' . $exception->getMessage();
             }
-
-            $createdCount++;
         }
 
         session()->forget('school_user_import_rows');
@@ -231,13 +266,13 @@ class SchoolAdminUserImportController extends Controller
         if (! empty($failedRows)) {
             return redirect()
                 ->route('school-admin.users.index')
-                ->with('success', $createdCount . ' account(s) created.')
+                ->with('success', $createdCount . ' account(s) created. ' . $emailSentCount . ' credentials email(s) sent.')
                 ->with('error', implode(' ', $failedRows));
         }
 
         return redirect()
             ->route('school-admin.users.index')
-            ->with('success', $createdCount . ' account(s) created successfully.');
+            ->with('success', $createdCount . ' account(s) created successfully. ' . $emailSentCount . ' credentials email(s) sent.');
     }
 
     private function parseCsv($file): array
@@ -343,8 +378,8 @@ class SchoolAdminUserImportController extends Controller
 
             if ($role === '') {
                 $errors['role'] = 'Role is required.';
-            } elseif (! in_array($normalizedRole, ['principal', 'evaluator'])) {
-                $errors['role'] = 'Role must be Principal or evaluator.';
+            } elseif (! in_array($normalizedRole, ['principal', 'evaluator'], true)) {
+                $errors['role'] = 'Role must be Principal or Evaluator.';
             } else {
                 $roleRow = $roleMap[$normalizedRole] ?? null;
                 if (! $roleRow) {
@@ -378,6 +413,11 @@ class SchoolAdminUserImportController extends Controller
         ]);
 
         if (! $response->successful()) {
+            Log::error('Failed to resolve import role map.', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
             return [];
         }
 
@@ -405,12 +445,16 @@ class SchoolAdminUserImportController extends Controller
         ]);
 
         if (! $response->successful()) {
+            Log::error('Failed to resolve import scope map.', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
             return [];
         }
 
         $schoolScopes = collect($response->json());
 
-        // Principal and Evaluator now share the same school-level scope used by School Admin.
         $schoolScope = $schoolScopes->first(function ($scope) {
                 return str_contains(strtolower($scope['name'] ?? ''), 'school admin');
             })

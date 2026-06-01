@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\SchoolAdmin;
 
-use App\Http\Controllers\Controller;
 use App\Helpers\SchoolAdminMenuHelper;
+use App\Http\Controllers\Controller;
 use App\Mail\UserCredentialsMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -76,17 +76,7 @@ class SchoolAdminUserImportController extends Controller
         }
 
         $rows = $request->input('rows', []);
-        $normalizedRows = [];
-
-        foreach ($rows as $index => $row) {
-            $normalizedRows[] = [
-                'row_number' => $row['row_number'] ?? ($index + 2),
-                'full_name' => trim($row['full_name'] ?? ''),
-                'email' => trim($row['email'] ?? ''),
-                'role' => trim($row['role'] ?? ''),
-            ];
-        }
-
+        $normalizedRows = $this->normalizeRows($rows);
         $validatedRows = $this->validateImportRows($normalizedRows, $schoolId);
 
         session([
@@ -101,7 +91,6 @@ class SchoolAdminUserImportController extends Controller
 
     public function commit(Request $request)
     {
-        $rows = session('school_user_import_rows', []);
         $activeDesignation = session('active_designation', []);
         $schoolId = $activeDesignation['school_id'] ?? null;
 
@@ -111,18 +100,33 @@ class SchoolAdminUserImportController extends Controller
                 ->with('error', 'No school assigned to your account.');
         }
 
+        // IMPORTANT: use edited rows from the review form first.
+        // Fallback to session only if the form did not send rows.
+        $submittedRows = $request->input('rows', []);
+        $rows = ! empty($submittedRows)
+            ? $this->normalizeRows($submittedRows)
+            : session('school_user_import_rows', []);
+
         if (empty($rows)) {
             return redirect()
                 ->route('school-admin.users.import.index')
                 ->with('error', 'No import data found.');
         }
 
-        $invalidRows = collect($rows)->filter(fn ($row) => ($row['status'] ?? 'invalid') !== 'valid');
+        $validatedRows = $this->validateImportRows($rows, $schoolId);
+        session([
+            'school_user_import_rows' => $validatedRows,
+        ]);
+
+        $invalidRows = collect($validatedRows)->filter(fn ($row) => ($row['status'] ?? 'invalid') !== 'valid');
 
         if ($invalidRows->isNotEmpty()) {
-            return redirect()
-                ->route('school-admin.users.import.index')
-                ->with('error', 'Please fix validation errors before creating accounts.');
+            $menuGroups = SchoolAdminMenuHelper::getMenuGroups();
+
+            return view('pages.school-admin.school-admin-users-import-review', [
+                'menuGroups' => $menuGroups,
+                'rows' => $validatedRows,
+            ])->with('error', 'Please fix validation errors before creating accounts.');
         }
 
         $roleMap = $this->resolveRoleMap();
@@ -132,7 +136,7 @@ class SchoolAdminUserImportController extends Controller
         $emailSentCount = 0;
         $failedRows = [];
 
-        foreach ($rows as $row) {
+        foreach ($validatedRows as $row) {
             $roleName = strtolower(trim($row['role']));
             $role = $roleMap[$roleName] ?? null;
             $scope = $scopeMap[$role['id'] ?? ''] ?? null;
@@ -275,6 +279,22 @@ class SchoolAdminUserImportController extends Controller
             ->with('success', $createdCount . ' account(s) created successfully. ' . $emailSentCount . ' credentials email(s) sent.');
     }
 
+    private function normalizeRows(array $rows): array
+    {
+        $normalizedRows = [];
+
+        foreach ($rows as $index => $row) {
+            $normalizedRows[] = [
+                'row_number' => $row['row_number'] ?? ($index + 2),
+                'full_name' => trim($row['full_name'] ?? ''),
+                'email' => strtolower(trim($row['email'] ?? '')),
+                'role' => trim($row['role'] ?? ''),
+            ];
+        }
+
+        return $normalizedRows;
+    }
+
     private function parseCsv($file): array
     {
         $rows = [];
@@ -370,7 +390,7 @@ class SchoolAdminUserImportController extends Controller
                 $errors['email'] = 'Email is required.';
             } elseif (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $errors['email'] = 'Invalid email format.';
-            } elseif (in_array($email, $existingEmails)) {
+            } elseif (in_array($email, $existingEmails, true)) {
                 $errors['email'] = 'Email already exists.';
             } elseif (($emailsInFile[$email] ?? 0) > 1) {
                 $errors['email'] = 'Duplicate email in file.';

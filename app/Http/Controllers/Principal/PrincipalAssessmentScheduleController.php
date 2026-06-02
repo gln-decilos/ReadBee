@@ -529,47 +529,73 @@ class PrincipalAssessmentScheduleController extends Controller
 
     private function notifyScheduleChanges(array $oldSchedule, array $newSchedule, array $assignments): void
     {
-        if (empty($assignments)) {
-            return;
-        }
-
-        $oldDate = $oldSchedule['assessment_date'] ?? null;
-        $newDate = $newSchedule['assessment_date'] ?? $oldDate;
-        $oldStatus = strtolower((string) ($oldSchedule['status'] ?? ''));
-        $newStatus = strtolower((string) ($newSchedule['status'] ?? $oldStatus));
-
-        $dateChanged = $oldDate && $newDate && $oldDate !== $newDate;
-        $cancelled = $newStatus === 'cancelled' && $oldStatus !== 'cancelled';
-
-        if (! $dateChanged && ! $cancelled) {
-            return;
-        }
-
-        $labels = $this->sectionLabelsByAssignment($assignments);
-
-        foreach ($assignments as $assignment) {
-            $label = $labels[$assignment['assignment_id'] ?? ''] ?? 'your assigned section';
-
-            if ($cancelled) {
-                $this->notifications()->create(
-                    $assignment['evaluator_user_id'] ?? null,
-                    'Assessment schedule cancelled',
-                    'The assessment schedule for ' . $label . ' on ' . $this->dateLabel($oldDate) . ' was cancelled.',
-                    route('evaluator.assignments', [], false),
-                    'schedule_cancelled'
-                );
-
-                continue;
+        try {
+            if (empty($assignments)) {
+                return;
             }
 
-            $this->notifications()->create(
-                $assignment['evaluator_user_id'] ?? null,
-                'Assessment date updated',
-                'The assessment date for ' . $label . ' changed from ' . $this->dateLabel($oldDate) . ' to ' . $this->dateLabel($newDate) . '.',
-                route('evaluator.assignments', [], false),
-                'schedule_updated'
-            );
+            $oldDate = $oldSchedule['assessment_date'] ?? null;
+            $newDate = $newSchedule['assessment_date'] ?? $oldDate;
+            $oldStatus = strtolower((string) ($oldSchedule['status'] ?? ''));
+            $newStatus = strtolower((string) ($newSchedule['status'] ?? $oldStatus));
+
+            $dateChanged = $oldDate && $newDate && $oldDate !== $newDate;
+            $cancelled = $newStatus === 'cancelled' && $oldStatus !== 'cancelled';
+
+            if (! $dateChanged && ! $cancelled) {
+                return;
+            }
+
+            $labels = $this->sectionLabelsByAssignment($assignments);
+            $link = $this->notificationRoute('evaluator.assignments', '/evaluator/assignments');
+
+            foreach ($assignments as $assignment) {
+                $label = $labels[$assignment['assignment_id'] ?? ''] ?? 'your assigned section';
+
+                if ($cancelled) {
+                    $this->notifications()->create(
+                        $assignment['evaluator_user_id'] ?? null,
+                        'Assessment schedule cancelled',
+                        'The assessment schedule for ' . $label . ' on ' . $this->dateLabel($oldDate) . ' was cancelled.',
+                        $link,
+                        'schedule_cancelled'
+                    );
+
+                    continue;
+                }
+
+                $this->notifications()->create(
+                    $assignment['evaluator_user_id'] ?? null,
+                    'Assessment date updated',
+                    'The assessment date for ' . $label . ' changed from ' . $this->dateLabel($oldDate) . ' to ' . $this->dateLabel($newDate) . '.',
+                    $link,
+                    'schedule_updated'
+                );
+            }
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('schedule_change', $exception);
         }
+    }
+
+    private function notificationRoute(string $routeName, string $fallback, array $parameters = []): string
+    {
+        try {
+            if (\Illuminate\Support\Facades\Route::has($routeName)) {
+                return route($routeName, $parameters, false);
+            }
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('notification_route', $exception);
+        }
+
+        return $fallback;
+    }
+
+    private function logNotificationFailure(string $type, \Throwable $exception): void
+    {
+        \Illuminate\Support\Facades\Log::warning('Notification skipped so schedule flow can continue.', [
+            'type' => $type,
+            'message' => $exception->getMessage(),
+        ]);
     }
 
     private function sectionLabelsByAssignment(array $assignments): array

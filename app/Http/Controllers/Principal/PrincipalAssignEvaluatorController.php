@@ -1011,35 +1011,68 @@ class PrincipalAssignEvaluatorController extends Controller
 
     private function notifyEvaluatorAssigned(array $assignment): void
     {
-        $this->notifications()->create(
-            $assignment['evaluator_user_id'] ?? null,
-            'New evaluator assignment',
-            'You were assigned to assess ' . ($assignment['grade_label'] ?? 'Grade') . ' - ' . ($assignment['section_name'] ?? 'Section') . ' on ' . $this->dateLabel($assignment['assessment_date'] ?? null) . '.',
-            route('evaluator.assignments', [], false),
-            'evaluator_assignment'
-        );
+        try {
+            $this->notifications()->create(
+                $assignment['evaluator_user_id'] ?? null,
+                'New evaluator assignment',
+                'You were assigned to assess ' . ($assignment['grade_label'] ?? 'Grade') . ' - ' . ($assignment['section_name'] ?? 'Section') . ' on ' . $this->dateLabel($assignment['assessment_date'] ?? null) . '.',
+                $this->notificationRoute('evaluator.assignments', '/evaluator/assignments'),
+                'evaluator_assignment'
+            );
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('evaluator_assignment', $exception);
+        }
     }
 
     private function notifyEvaluatorAssignmentRemoved(array $assignment): void
     {
-        $this->notifications()->create(
-            $assignment['evaluator_user_id'] ?? null,
-            'Evaluator assignment removed',
-            'Your assignment for ' . ($assignment['grade_label'] ?? 'Grade') . ' - ' . ($assignment['section_name'] ?? 'Section') . ' on ' . $this->dateLabel($assignment['assessment_date'] ?? null) . ' was removed.',
-            route('evaluator.assignments', [], false),
-            'assignment_cancelled'
-        );
+        try {
+            $this->notifications()->create(
+                $assignment['evaluator_user_id'] ?? null,
+                'Evaluator assignment removed',
+                'Your assignment for ' . ($assignment['grade_label'] ?? 'Grade') . ' - ' . ($assignment['section_name'] ?? 'Section') . ' on ' . $this->dateLabel($assignment['assessment_date'] ?? null) . ' was removed.',
+                $this->notificationRoute('evaluator.assignments', '/evaluator/assignments'),
+                'assignment_cancelled'
+            );
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('assignment_cancelled', $exception);
+        }
     }
 
     private function notifyPrincipalAssignmentConfirmed(array $assignment): void
     {
-        $this->notifications()->create(
-            $assignment['assigned_by'] ?? null,
-            'Evaluator confirmed assignment',
-            'An evaluator has confirmed an assessment assignment.',
-            route('principal.assign-evaluator', [], false),
-            'assignment_confirmed'
-        );
+        try {
+            $this->notifications()->create(
+                $assignment['assigned_by'] ?? null,
+                'Evaluator confirmed assignment',
+                'An evaluator has confirmed an assessment assignment.',
+                $this->notificationRoute('principal.assign-evaluator', '/principal/assign-evaluator'),
+                'assignment_confirmed'
+            );
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('assignment_confirmed', $exception);
+        }
+    }
+
+    private function notificationRoute(string $routeName, string $fallback, array $parameters = []): string
+    {
+        try {
+            if (\Illuminate\Support\Facades\Route::has($routeName)) {
+                return route($routeName, $parameters, false);
+            }
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('notification_route', $exception);
+        }
+
+        return $fallback;
+    }
+
+    private function logNotificationFailure(string $type, \Throwable $exception): void
+    {
+        \Illuminate\Support\Facades\Log::warning('Notification skipped so email/assignment flow can continue.', [
+            'type' => $type,
+            'message' => $exception->getMessage(),
+        ]);
     }
 
     private function schoolYearLabel(array $year): string

@@ -339,28 +339,57 @@ class EvaluatorClassReportController extends Controller
 
     private function notifyPrincipalClassReportSubmitted(array $report, string $classReportId): void
     {
-        $principalIds = $this->notifications()->principalUserIdsForSchool($report['school_id'] ?? null);
+        try {
+            $principalIds = $this->notifications()->principalUserIdsForSchool($report['school_id'] ?? null);
 
-        $this->notifications()->createForUsers(
-            $principalIds,
-            'Class report submitted',
-            ($report['evaluator_name'] ?? 'An evaluator') . ' submitted the ' . ucfirst($report['language'] ?? 'class') . ' report for ' . ($report['grade_label'] ?? 'Grade') . ' - ' . ($report['section_name'] ?? 'Section') . '.',
-            route('principal.reports.class-report', ['classReportId' => $classReportId], false),
-            'class_report_submitted'
-        );
+            $this->notifications()->createForUsers(
+                $principalIds,
+                'Class report submitted',
+                ($report['evaluator_name'] ?? 'An evaluator') . ' submitted the ' . ucfirst($report['language'] ?? 'class') . ' report for ' . ($report['grade_label'] ?? 'Grade') . ' - ' . ($report['section_name'] ?? 'Section') . '.',
+                $this->notificationRoute('principal.reports.class-report', '/principal/reports/class-report/' . $classReportId, ['classReportId' => $classReportId]),
+                'class_report_submitted'
+            );
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('class_report_submitted', $exception);
+        }
     }
 
     private function notifyPrincipalAssignmentReportCompleted(array $report): void
     {
-        $principalIds = $this->notifications()->principalUserIdsForSchool($report['school_id'] ?? null);
+        try {
+            $principalIds = $this->notifications()->principalUserIdsForSchool($report['school_id'] ?? null);
 
-        $this->notifications()->createForUsers(
-            $principalIds,
-            'Evaluator reports completed',
-            ($report['evaluator_name'] ?? 'An evaluator') . ' completed all required reports for ' . ($report['grade_label'] ?? 'Grade') . ' - ' . ($report['section_name'] ?? 'Section') . '.',
-            route('principal.reports', ['year_id' => $report['year_id'] ?? null], false),
-            'assignment_reports_completed'
-        );
+            $this->notifications()->createForUsers(
+                $principalIds,
+                'Evaluator reports completed',
+                ($report['evaluator_name'] ?? 'An evaluator') . ' completed all required reports for ' . ($report['grade_label'] ?? 'Grade') . ' - ' . ($report['section_name'] ?? 'Section') . '.',
+                $this->notificationRoute('principal.reports', '/principal/reports', ['year_id' => $report['year_id'] ?? null]),
+                'assignment_reports_completed'
+            );
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('assignment_reports_completed', $exception);
+        }
+    }
+
+    private function notificationRoute(string $routeName, string $fallback, array $parameters = []): string
+    {
+        try {
+            if (\Illuminate\Support\Facades\Route::has($routeName)) {
+                return route($routeName, $parameters, false);
+            }
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('notification_route', $exception);
+        }
+
+        return $fallback;
+    }
+
+    private function logNotificationFailure(string $type, \Throwable $exception): void
+    {
+        \Illuminate\Support\Facades\Log::warning('Notification skipped so report flow can continue.', [
+            'type' => $type,
+            'message' => $exception->getMessage(),
+        ]);
     }
 
     private function saveClassReport(array $report, string $evaluatorId): ?string

@@ -105,13 +105,38 @@ class EvaluatorAssignmentController extends Controller
 
     private function notifyPrincipalAssignmentConfirmed(array $assignment): void
     {
-        $this->notifications()->create(
-            $assignment['assigned_by'] ?? null,
-            'Evaluator confirmed assignment',
-            'An evaluator has confirmed an assessment assignment.',
-            route('principal.assign-evaluator', [], false),
-            'assignment_confirmed'
-        );
+        try {
+            $this->notifications()->create(
+                $assignment['assigned_by'] ?? null,
+                'Evaluator confirmed assignment',
+                'An evaluator has confirmed an assessment assignment.',
+                $this->notificationRoute('principal.assign-evaluator', '/principal/assign-evaluator'),
+                'assignment_confirmed'
+            );
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('assignment_confirmed', $exception);
+        }
+    }
+
+    private function notificationRoute(string $routeName, string $fallback, array $parameters = []): string
+    {
+        try {
+            if (\Illuminate\Support\Facades\Route::has($routeName)) {
+                return route($routeName, $parameters, false);
+            }
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('notification_route', $exception);
+        }
+
+        return $fallback;
+    }
+
+    private function logNotificationFailure(string $type, \Throwable $exception): void
+    {
+        \Illuminate\Support\Facades\Log::warning('Notification skipped so evaluator assignment flow can continue.', [
+            'type' => $type,
+            'message' => $exception->getMessage(),
+        ]);
     }
 
     private function fetchEvaluatorAssignments(string $evaluatorId, string $yearId, array $schoolYears): array

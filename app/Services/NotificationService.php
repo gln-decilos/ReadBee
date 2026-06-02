@@ -14,8 +14,8 @@ class NotificationService
         }
 
         try {
-            $response = Http::timeout(4)
-                ->connectTimeout(2)
+            $response = Http::timeout(2)
+                ->connectTimeout(1)
                 ->withHeaders($this->writeHeaders())
                 ->post($this->supabaseUrl() . '/rest/v1/notifications', [
                     'user_id' => $userId,
@@ -103,8 +103,8 @@ class NotificationService
         }
 
         try {
-            $response = Http::timeout(4)
-                ->connectTimeout(2)
+            $response = Http::timeout(2)
+                ->connectTimeout(1)
                 ->withHeaders($this->readHeaders())
                 ->get($this->supabaseUrl() . '/rest/v1/user_roles', [
                     'select' => 'user_id,school_id,roles(name)',
@@ -190,8 +190,8 @@ class NotificationService
                 $query['link'] = 'eq.' . $link;
             }
 
-            $response = Http::timeout(4)
-                ->connectTimeout(2)
+            $response = Http::timeout(2)
+                ->connectTimeout(1)
                 ->withHeaders($this->readHeaders())
                 ->get($this->supabaseUrl() . '/rest/v1/notifications', $query);
 
@@ -214,8 +214,8 @@ class NotificationService
         }
 
         try {
-            $response = Http::timeout(4)
-                ->connectTimeout(2)
+            $response = Http::timeout(2)
+                ->connectTimeout(1)
                 ->withHeaders($this->readHeaders())
                 ->get($this->supabaseUrl() . '/rest/v1/user_roles', [
                     'select' => 'user_id,district_id,municipal_id,roles(name)',
@@ -252,8 +252,8 @@ class NotificationService
         }
 
         try {
-            $response = Http::timeout(4)
-                ->connectTimeout(2)
+            $response = Http::timeout(2)
+                ->connectTimeout(1)
                 ->withHeaders($this->readHeaders())
                 ->get($this->supabaseUrl() . '/rest/v1/' . $table, [
                     'select' => $select,

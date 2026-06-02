@@ -153,25 +153,50 @@ class PrincipalReportController extends Controller
 
     private function notifySchoolReportSubmitted(array $report, string $schoolReportId): void
     {
-        $districtReviewerIds = $this->notifications()->districtReviewerUserIdsForSchool($report['school_id'] ?? null);
-        $schoolAdminIds = $this->notifications()->schoolAdminUserIds($report['school_id'] ?? null);
-        $message = 'A consolidated ' . ucfirst($report['language'] ?? 'school') . ' report for ' . ($report['grade_label'] ?? 'Grade') . ', ' . ($report['quarter_label'] ?? 'Quarter') . ' was submitted.';
+        try {
+            $districtReviewerIds = $this->notifications()->districtReviewerUserIdsForSchool($report['school_id'] ?? null);
+            $schoolAdminIds = $this->notifications()->schoolAdminUserIds($report['school_id'] ?? null);
+            $message = 'A consolidated ' . ucfirst($report['language'] ?? 'school') . ' report for ' . ($report['grade_label'] ?? 'Grade') . ', ' . ($report['quarter_label'] ?? 'Quarter') . ' was submitted.';
 
-        $this->notifications()->createForUsers(
-            $districtReviewerIds,
-            'School report submitted',
-            $message,
-            route('district-supervisor.reports.school-report', ['schoolReportId' => $schoolReportId], false),
-            'school_report_submitted'
-        );
+            $this->notifications()->createForUsers(
+                $districtReviewerIds,
+                'School report submitted',
+                $message,
+                $this->notificationRoute('district-supervisor.reports.school-report', '/district-supervisor/reports/school-report/' . $schoolReportId, ['schoolReportId' => $schoolReportId]),
+                'school_report_submitted'
+            );
 
-        $this->notifications()->createForUsers(
-            $schoolAdminIds,
-            'School report submitted',
-            $message,
-            route('school-admin.dashboard', [], false),
-            'school_report_submitted'
-        );
+            $this->notifications()->createForUsers(
+                $schoolAdminIds,
+                'School report submitted',
+                $message,
+                $this->notificationRoute('school-admin.dashboard', '/school-admin/dashboard'),
+                'school_report_submitted'
+            );
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('school_report_submitted', $exception);
+        }
+    }
+
+    private function notificationRoute(string $routeName, string $fallback, array $parameters = []): string
+    {
+        try {
+            if (\Illuminate\Support\Facades\Route::has($routeName)) {
+                return route($routeName, $parameters, false);
+            }
+        } catch (\Throwable $exception) {
+            $this->logNotificationFailure('notification_route', $exception);
+        }
+
+        return $fallback;
+    }
+
+    private function logNotificationFailure(string $type, \Throwable $exception): void
+    {
+        \Illuminate\Support\Facades\Log::warning('Notification skipped so school report flow can continue.', [
+            'type' => $type,
+            'message' => $exception->getMessage(),
+        ]);
     }
 
     private function notifications(): NotificationService

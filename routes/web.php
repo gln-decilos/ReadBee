@@ -31,6 +31,7 @@ use App\Http\Controllers\Evaluator\EvaluatorClassReportController;
 use App\Http\Controllers\DistrictSupervisor\DistrictSupervisorDashboardController;
 use App\Http\Controllers\DistrictSupervisor\DistrictSupervisorProgressMonitoringController;
 use App\Http\Controllers\DistrictSupervisor\DistrictSupervisorReportController;
+use App\Http\Controllers\NotificationController;
 
 // landing page
 Route::get('/', function () {
@@ -99,6 +100,13 @@ Route::get('/signup', function () {
 
 Route::post('/logout', [SignInController::class, 'logout'])->name('logout');
 Route::post('/designation/switch', [SignInController::class, 'switchDesignation'])->name('designation.switch');
+
+Route::get('/notifications/feed', [NotificationController::class, 'feed'])
+    ->name('notifications.feed');
+Route::post('/notifications/{notificationId}/read', [NotificationController::class, 'markAsRead'])
+    ->name('notifications.read');
+Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
+    ->name('notifications.read-all');
 
 // ui elements pages
 Route::get('/alerts', function () {

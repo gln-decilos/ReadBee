@@ -1,21 +1,128 @@
 {{-- Notification Dropdown Component --}}
 <div class="relative" x-data="{
     dropdownOpen: false,
-    notifying: true,
+    loading: false,
+    notifications: @js($notifications ?? []),
+    unreadCount: @js($unreadCount ?? 0),
+    fallbackUrl: @js($fallbackUrl ?? '#'),
+    feedUrl: @js($feedUrl ?? null),
+    readAllUrl: @js($readAllUrl ?? null),
+    csrfToken: @js(csrf_token()),
+
+    get notifying() {
+        return this.unreadCount > 0;
+    },
+
+    init() {
+        this.loadNotifications();
+    },
+
     toggleDropdown() {
         this.dropdownOpen = !this.dropdownOpen;
-        this.notifying = false;
     },
+
     closeDropdown() {
         this.dropdownOpen = false;
     },
-    handleItemClick() {
-        console.log('Notification item clicked');
-        this.closeDropdown();
+
+    async loadNotifications() {
+        if (!this.feedUrl) {
+            return;
+        }
+
+        this.loading = true;
+
+        try {
+            const response = await fetch(this.feedUrl, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            this.notifications = Array.isArray(data.notifications) ? data.notifications : [];
+            this.unreadCount = Number(data.unread_count || 0);
+            this.fallbackUrl = data.fallback_url || this.fallbackUrl || '#';
+        } catch (error) {
+            console.warn('Notifications could not be loaded.', error);
+        } finally {
+            this.loading = false;
+        }
     },
-    handleViewAllClick() {
-        console.log('View All Notifications clicked');
+
+    async openNotification(notification) {
+        const redirectTo = notification.link || this.fallbackUrl || '#';
         this.closeDropdown();
+
+        if (!notification.read_url) {
+            if (redirectTo !== '#') {
+                window.location.href = redirectTo;
+            }
+            return;
+        }
+
+        try {
+            await fetch(notification.read_url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': this.csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ redirect_to: redirectTo })
+            });
+
+            notification.is_read = true;
+            this.unreadCount = this.notifications.filter((item) => !item.is_read).length;
+        } catch (error) {
+            console.warn('Notification could not be marked as read.', error);
+        }
+
+        if (redirectTo !== '#') {
+            window.location.href = redirectTo;
+        }
+    },
+
+    async markAllAsRead() {
+        this.closeDropdown();
+
+        if (!this.readAllUrl) {
+            return;
+        }
+
+        try {
+            await fetch(this.readAllUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': this.csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+
+            this.notifications = this.notifications.map((item) => ({ ...item, is_read: true }));
+            this.unreadCount = 0;
+        } catch (error) {
+            console.warn('Notifications could not be marked as read.', error);
+        }
+    },
+
+    viewAll() {
+        this.closeDropdown();
+
+        if (this.fallbackUrl && this.fallbackUrl !== '#') {
+            window.location.href = this.fallbackUrl;
+        }
     }
 }" @click.away="closeDropdown()">
     <!-- Notification Button -->
@@ -23,12 +130,15 @@
         class="relative flex items-center justify-center text-gray-500 transition-colors bg-white border border-gray-200 rounded-full hover:text-dark-900 h-11 w-11 hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
         @click="toggleDropdown()"
         type="button"
+        aria-label="Open notifications"
     >
         <!-- Notification Badge -->
         <span
-            x-show="notifying"
-            class="absolute right-0 top-0.5 z-1 h-2 w-2 rounded-full bg-orange-400"
+            x-show="unreadCount > 0"
+            x-cloak
+            class="absolute right-0 top-0.5 z-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-400 px-1 text-[10px] font-semibold leading-none text-white"
         >
+            <span x-text="unreadCount > 9 ? '9+' : unreadCount"></span>
             <span
                 class="absolute inline-flex w-full h-full bg-orange-400 rounded-full opacity-75 -z-1 animate-ping"
             ></span>
@@ -66,9 +176,16 @@
     >
         <!-- Dropdown Header -->
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-gray-100 dark:border-gray-800">
-            <h5 class="text-lg font-semibold text-gray-800 dark:text-white/90">Notification</h5>
+            <div>
+                <h5 class="text-lg font-semibold text-gray-800 dark:text-white/90">Notification</h5>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    <span x-text="unreadCount"></span>
+                    unread
+                    <span x-text="unreadCount === 1 ? 'notification' : 'notifications'"></span>
+                </p>
+            </div>
 
-            <button @click="closeDropdown()" class="text-gray-500 dark:text-gray-400" type="button">
+            <button @click="closeDropdown()" class="text-gray-500 dark:text-gray-400" type="button" aria-label="Close notifications">
                 <svg
                     class="fill-current"
                     width="24"
@@ -89,134 +206,80 @@
 
         <!-- Notification List -->
         <ul class="flex flex-col h-auto overflow-y-auto custom-scrollbar">
-            @php
-                $notifications = [
-                    [
-                        'id' => 1,
-                        'userName' => 'Terry Franci',
-                        'userImage' => '/images/user/user-02.jpg',
-                        'action' => 'requests permission to change',
-                        'project' => 'Project - Nganter App',
-                        'type' => 'Project',
-                        'time' => '5 min ago',
-                        'status' => 'online',
-                    ],
-                    [
-                        'id' => 2,
-                        'userName' => 'Alex Johnson',
-                        'userImage' => '/images/user/user-03.jpg',
-                        'action' => 'requests permission to change',
-                        'project' => 'Project - Nganter App',
-                        'type' => 'Project',
-                        'time' => '10 min ago',
-                        'status' => 'offline',
-                    ],
-                    [
-                        'id' => 3,
-                        'userName' => 'Sarah Williams',
-                        'userImage' => '/images/user/user-04.jpg',
-                        'action' => 'requests permission to change',
-                        'project' => 'Project - Dashboard UI',
-                        'type' => 'Project',
-                        'time' => '15 min ago',
-                        'status' => 'online',
-                    ],
-                    [
-                        'id' => 4,
-                        'userName' => 'Mike Brown',
-                        'userImage' => '/images/user/user-05.jpg',
-                        'action' => 'requests permission to change',
-                        'project' => 'Project - E-commerce',
-                        'type' => 'Project',
-                        'time' => '20 min ago',
-                        'status' => 'online',
-                    ],
-                    [
-                        'id' => 5,
-                        'userName' => 'Emma Davis',
-                        'userImage' => '/images/user/user-06.jpg',
-                        'action' => 'requests permission to change',
-                        'project' => 'Project - Mobile App',
-                        'type' => 'Project',
-                        'time' => '25 min ago',
-                        'status' => 'offline',
-                    ],
-                    [
-                        'id' => 6,
-                        'userName' => 'John Smith',
-                        'userImage' => '/images/user/user-07.jpg',
-                        'action' => 'requests permission to change',
-                        'project' => 'Project - Landing Page',
-                        'type' => 'Project',
-                        'time' => '30 min ago',
-                        'status' => 'online',
-                    ],
-                    [
-                        'id' => 7,
-                        'userName' => 'Lisa Anderson',
-                        'userImage' => '/images/user/user-08.jpg',
-                        'action' => 'requests permission to change',
-                        'project' => 'Project - Blog System',
-                        'type' => 'Project',
-                        'time' => '35 min ago',
-                        'status' => 'online',
-                    ],
-                    [
-                        'id' => 8,
-                        'userName' => 'David Wilson',
-                        'userImage' => '/images/user/user-09.jpg',
-                        'action' => 'requests permission to change',
-                        'project' => 'Project - CRM Dashboard',
-                        'type' => 'Project',
-                        'time' => '40 min ago',
-                        'status' => 'online',
-                    ],
-                ];
-            @endphp
+            <li x-show="loading" x-cloak class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                Loading notifications...
+            </li>
 
-            @foreach ($notifications as $notification)
-                <li @click="handleItemClick()">
-                    <a
-                        class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                        href="#"
+            <template x-for="notification in notifications" :key="notification.notification_id || notification.created_at">
+                <li>
+                    <button
+                        type="button"
+                        class="flex w-full gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 text-left transition hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
+                        :class="notification.is_read ? '' : 'bg-orange-50/70 dark:bg-orange-500/10'"
+                        @click="openNotification(notification)"
                     >
-                        <span class="relative block w-full h-10 rounded-full z-1 max-w-10">
-                            <img src="{{ $notification['userImage'] }}" alt="User" class="overflow-hidden rounded-full" />
+                        <span
+                            class="relative flex h-10 w-full max-w-10 items-center justify-center rounded-full z-1"
+                            :class="notification.is_read ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' : 'bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300'"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 22C13.1046 22 14 21.1046 14 20H10C10 21.1046 10.8954 22 12 22Z" fill="currentColor"/>
+                                <path d="M18 16V11C18 7.68629 15.3137 5 12 5C8.68629 5 6 7.68629 6 11V16L4 18V19H20V18L18 16Z" fill="currentColor"/>
+                                <path d="M13 3C13 2.44772 12.5523 2 12 2C11.4477 2 11 2.44772 11 3V4H13V3Z" fill="currentColor"/>
+                            </svg>
+
                             <span
-                                class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white dark:border-gray-900 {{ $notification['status'] === 'online' ? 'bg-success-500' : 'bg-error-500' }}"
+                                x-show="!notification.is_read"
+                                class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white bg-orange-400 dark:border-gray-900"
                             ></span>
                         </span>
 
-                        <span class="block">
-                            <span class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400">
-                                <span class="font-medium text-gray-800 dark:text-white/90">
-                                    {{ $notification['userName'] }}
-                                </span>
-                                {{ $notification['action'] }}
-                                <span class="font-medium text-gray-800 dark:text-white/90">
-                                    {{ $notification['project'] }}
-                                </span>
-                            </span>
+                        <span class="block min-w-0 flex-1">
+                            <span class="mb-1 block text-sm font-semibold text-gray-800 dark:text-white/90" x-text="notification.title"></span>
+                            <span class="mb-1.5 block line-clamp-2 text-theme-sm text-gray-500 dark:text-gray-400" x-text="notification.message"></span>
 
                             <span class="flex items-center gap-2 text-gray-500 text-theme-xs dark:text-gray-400">
-                                <span>{{ $notification['type'] }}</span>
+                                <span x-text="notification.type_label"></span>
                                 <span class="w-1 h-1 bg-gray-400 rounded-full"></span>
-                                <span>{{ $notification['time'] }}</span>
+                                <span x-text="notification.time_ago"></span>
                             </span>
                         </span>
-                    </a>
+                    </button>
                 </li>
-            @endforeach
+            </template>
+
+            <li x-show="!loading && notifications.length === 0" class="flex flex-col items-center justify-center px-5 py-12 text-center">
+                <span class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22C13.1046 22 14 21.1046 14 20H10C10 21.1046 10.8954 22 12 22Z" fill="currentColor"/>
+                        <path d="M18 16V11C18 7.68629 15.3137 5 12 5C8.68629 5 6 7.68629 6 11V16L4 18V19H20V18L18 16Z" fill="currentColor"/>
+                        <path d="M13 3C13 2.44772 12.5523 2 12 2C11.4477 2 11 2.44772 11 3V4H13V3Z" fill="currentColor"/>
+                    </svg>
+                </span>
+                <p class="text-sm font-medium text-gray-800 dark:text-white/90">No notifications yet</p>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">New evaluator assignments and updates will appear here.</p>
+            </li>
         </ul>
 
         <!-- View All Button -->
-        <a
-            href="#"
-            class="mt-3 flex justify-center rounded-lg border border-gray-300 bg-white p-3 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
-            @click.prevent="handleViewAllClick()"
+        <button
+            x-show="unreadCount > 0"
+            x-cloak
+            type="button"
+            class="mt-3 flex w-full justify-center rounded-lg border border-gray-300 bg-white p-3 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+            @click="markAllAsRead()"
+        >
+            Mark all as read
+        </button>
+
+        <button
+            x-show="unreadCount === 0"
+            type="button"
+            class="mt-3 flex w-full justify-center rounded-lg border border-gray-300 bg-white p-3 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+            @click="viewAll()"
         >
             View All Notification
-        </a>
+        </button>
     </div>
     <!-- Dropdown End -->
 </div>

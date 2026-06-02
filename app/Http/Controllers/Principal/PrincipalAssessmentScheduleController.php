@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Principal;
 
 use App\Helpers\PrincipalMenuHelper;
 use App\Http\Controllers\Controller;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -201,6 +202,8 @@ class PrincipalAssessmentScheduleController extends Controller
             ], 422);
         }
 
+        $affectedAssignments = $this->fetchAssignmentsForSchedule($scheduleId);
+
         $response = Http::withHeaders(array_merge($this->supabaseHeaders(), [
             'Content-Type' => 'application/json',
             'Prefer' => 'return=representation',
@@ -219,6 +222,9 @@ class PrincipalAssessmentScheduleController extends Controller
         }
 
         $schedule = $response->json()[0] ?? null;
+        $this->syncAssignedEvaluatorScheduleDetails($scheduleId, $validated['quarter_id'], $validated['assessment_date']);
+        $this->notifyScheduleChanges($existing, $schedule ?: $validated, $affectedAssignments);
+
         $quarters = $this->fetchQuarters($yearId);
         $schoolYears = $this->fetchSchoolYears();
 
@@ -487,6 +493,145 @@ class PrincipalAssessmentScheduleController extends Controller
         }
 
         return true;
+    }
+
+    private function fetchAssignmentsForSchedule(string $scheduleId): array
+    {
+        $response = Http::withHeaders($this->supabaseHeaders())
+            ->get($this->supabaseUrl() . '/rest/v1/assigned_evaluators', [
+                'select' => 'assignment_id,evaluator_user_id,section_id,schedule_id,assessment_date,quarter_id,report_status,assessment_status',
+                'schedule_id' => 'eq.' . $scheduleId,
+            ]);
+
+        if (! $response->successful()) {
+            report('Failed to fetch schedule assignments for notification: ' . $response->body());
+            return [];
+        }
+
+        return $response->json();
+    }
+
+    private function syncAssignedEvaluatorScheduleDetails(string $scheduleId, string $quarterId, string $assessmentDate): void
+    {
+        $response = Http::withHeaders(array_merge($this->supabaseHeaders(), [
+            'Content-Type' => 'application/json',
+            'Prefer' => 'return=minimal',
+        ]))->patch($this->supabaseUrl() . '/rest/v1/assigned_evaluators?schedule_id=eq.' . rawurlencode($scheduleId), [
+            'quarter_id' => $quarterId,
+            'assessment_date' => $assessmentDate,
+            'updated_at' => now()->toISOString(),
+        ]);
+
+        if (! $response->successful()) {
+            report('Failed to sync assigned evaluator schedule details: ' . $response->body());
+        }
+    }
+
+    private function notifyScheduleChanges(array $oldSchedule, array $newSchedule, array $assignments): void
+    {
+        if (empty($assignments)) {
+            return;
+        }
+
+        $oldDate = $oldSchedule['assessment_date'] ?? null;
+        $newDate = $newSchedule['assessment_date'] ?? $oldDate;
+        $oldStatus = strtolower((string) ($oldSchedule['status'] ?? ''));
+        $newStatus = strtolower((string) ($newSchedule['status'] ?? $oldStatus));
+
+        $dateChanged = $oldDate && $newDate && $oldDate !== $newDate;
+        $cancelled = $newStatus === 'cancelled' && $oldStatus !== 'cancelled';
+
+        if (! $dateChanged && ! $cancelled) {
+            return;
+        }
+
+        $labels = $this->sectionLabelsByAssignment($assignments);
+
+        foreach ($assignments as $assignment) {
+            $label = $labels[$assignment['assignment_id'] ?? ''] ?? 'your assigned section';
+
+            if ($cancelled) {
+                $this->notifications()->create(
+                    $assignment['evaluator_user_id'] ?? null,
+                    'Assessment schedule cancelled',
+                    'The assessment schedule for ' . $label . ' on ' . $this->dateLabel($oldDate) . ' was cancelled.',
+                    route('evaluator.assignments', [], false),
+                    'schedule_cancelled'
+                );
+
+                continue;
+            }
+
+            $this->notifications()->create(
+                $assignment['evaluator_user_id'] ?? null,
+                'Assessment date updated',
+                'The assessment date for ' . $label . ' changed from ' . $this->dateLabel($oldDate) . ' to ' . $this->dateLabel($newDate) . '.',
+                route('evaluator.assignments', [], false),
+                'schedule_updated'
+            );
+        }
+    }
+
+    private function sectionLabelsByAssignment(array $assignments): array
+    {
+        $sectionIds = collect($assignments)->pluck('section_id')->filter()->unique()->values()->all();
+
+        if (empty($sectionIds)) {
+            return [];
+        }
+
+        $sectionsResponse = Http::withHeaders($this->supabaseHeaders())
+            ->get($this->supabaseUrl() . '/rest/v1/class_sections', [
+                'select' => 'section_id,grade_level_id,section_name',
+                'section_id' => 'in.(' . $this->postgrestInList($sectionIds) . ')',
+            ]);
+
+        if (! $sectionsResponse->successful()) {
+            return [];
+        }
+
+        $sections = collect($sectionsResponse->json() ?: [])->keyBy('section_id');
+        $gradeIds = $sections->pluck('grade_level_id')->filter()->unique()->values()->all();
+        $grades = collect();
+
+        if (! empty($gradeIds)) {
+            $gradesResponse = Http::withHeaders($this->supabaseHeaders())
+                ->get($this->supabaseUrl() . '/rest/v1/grade_levels', [
+                    'select' => 'grade_level_id,grade_number',
+                    'grade_level_id' => 'in.(' . $this->postgrestInList($gradeIds) . ')',
+                ]);
+
+            if ($gradesResponse->successful()) {
+                $grades = collect($gradesResponse->json() ?: [])->keyBy('grade_level_id');
+            }
+        }
+
+        return collect($assignments)->mapWithKeys(function ($assignment) use ($sections, $grades) {
+            $section = $sections->get($assignment['section_id'] ?? null, []);
+            $grade = $grades->get($section['grade_level_id'] ?? null, []);
+            $gradeLabel = isset($grade['grade_number']) ? 'Grade ' . $grade['grade_number'] : 'Grade';
+            $sectionName = $section['section_name'] ?? 'Section';
+
+            return [$assignment['assignment_id'] ?? '' => $gradeLabel . ' - ' . $sectionName];
+        })->all();
+    }
+
+    private function notifications(): NotificationService
+    {
+        return app(NotificationService::class);
+    }
+
+    private function dateLabel(?string $date): string
+    {
+        return $date ? date('M d, Y', strtotime($date)) : 'No date';
+    }
+
+    private function postgrestInList(array $ids): string
+    {
+        return collect($ids)
+            ->filter()
+            ->map(fn ($id) => '"' . str_replace('"', '\"', (string) $id) . '"')
+            ->implode(',');
     }
 
     private function scheduleHasLinkedRecords(string $scheduleId): bool

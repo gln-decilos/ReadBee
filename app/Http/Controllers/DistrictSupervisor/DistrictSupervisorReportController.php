@@ -294,7 +294,6 @@ class DistrictSupervisorReportController extends Controller
             'grade_level_id' => $gradeLevelId,
             'year_id' => $yearId,
             'quarter_id' => $quarterId,
-            'language' => $language,
         ]);
 
         if (empty($schoolReports)) {
@@ -328,8 +327,7 @@ class DistrictSupervisorReportController extends Controller
 
                 return [
                     'school_report_id' => $report['school_report_id'] ?? null,
-                    'school_id' => $report['school_id'] ?? null,
-                    'school_name' => $schools->get($report['school_id'] ?? null)['name'] ?? 'School',
+                            'school_name' => $schools->get($report['school_id'] ?? null)['name'] ?? 'School',
                     'submitted_at' => $report['submitted_at'] ?? null,
                     'summary' => $this->buildTotalSummary($sectionRows),
                 ];
@@ -687,7 +685,7 @@ class DistrictSupervisorReportController extends Controller
 
     private function currentUserId(): ?string
     {
-        return session('auth_user.id') ?? session('user.id') ?? auth()->id();
+        return session('supabase_user.id') ?? session('auth_user.id') ?? session('user.id') ?? auth()->id();
     }
 
     private function postgrestInList(array $ids): string

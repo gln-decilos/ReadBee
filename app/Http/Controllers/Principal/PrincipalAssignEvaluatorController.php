@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Principal;
 use App\Helpers\PrincipalMenuHelper;
 use App\Http\Controllers\Controller;
 use App\Mail\EvaluatorAssignmentMail;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -180,6 +181,7 @@ class PrincipalAssignEvaluatorController extends Controller
 
         session()->forget('mail_error_debug');
         $mailSent = $this->sendAssignmentEmail($formatted);
+        $this->notifyEvaluatorAssigned($formatted);
 
         return response()->json([
             'message' => $mailSent
@@ -340,6 +342,8 @@ class PrincipalAssignEvaluatorController extends Controller
                 $mailSentCount++;
             }
 
+            $this->notifyEvaluatorAssigned($formatted);
+
             $created[] = $formatted;
         }
 
@@ -429,6 +433,8 @@ class PrincipalAssignEvaluatorController extends Controller
             ], 422);
         }
 
+        $formatted = $this->hydrateSingleAssignment($assignment, $schoolId);
+
         $response = Http::withHeaders($this->supabaseHeaders())
             ->delete($this->supabaseUrl() . '/rest/v1/assigned_evaluators?assignment_id=eq.' . $assignmentId);
 
@@ -439,6 +445,8 @@ class PrincipalAssignEvaluatorController extends Controller
                 'message' => 'Failed to delete evaluator assignment. Check Laravel logs for the Supabase error.',
             ], 500);
         }
+
+        $this->notifyEvaluatorAssignmentRemoved($formatted);
 
         return response()->json([
             'message' => 'Evaluator assignment deleted successfully.',
@@ -469,6 +477,8 @@ class PrincipalAssignEvaluatorController extends Controller
                 'message' => 'The assignment confirmation could not be recorded. Please contact your school principal.',
             ]);
         }
+
+        $this->notifyPrincipalAssignmentConfirmed($response->json()[0] ?? ['assignment_id' => $assignmentId]);
 
         return view('pages.principal.evaluator-assignment-response', [
             'status' => 'confirmed',
@@ -992,6 +1002,44 @@ class PrincipalAssignEvaluatorController extends Controller
 
             return false;
         }
+    }
+
+    private function notifications(): NotificationService
+    {
+        return app(NotificationService::class);
+    }
+
+    private function notifyEvaluatorAssigned(array $assignment): void
+    {
+        $this->notifications()->create(
+            $assignment['evaluator_user_id'] ?? null,
+            'New evaluator assignment',
+            'You were assigned to assess ' . ($assignment['grade_label'] ?? 'Grade') . ' - ' . ($assignment['section_name'] ?? 'Section') . ' on ' . $this->dateLabel($assignment['assessment_date'] ?? null) . '.',
+            route('evaluator.assignments', [], false),
+            'evaluator_assignment'
+        );
+    }
+
+    private function notifyEvaluatorAssignmentRemoved(array $assignment): void
+    {
+        $this->notifications()->create(
+            $assignment['evaluator_user_id'] ?? null,
+            'Evaluator assignment removed',
+            'Your assignment for ' . ($assignment['grade_label'] ?? 'Grade') . ' - ' . ($assignment['section_name'] ?? 'Section') . ' on ' . $this->dateLabel($assignment['assessment_date'] ?? null) . ' was removed.',
+            route('evaluator.assignments', [], false),
+            'assignment_cancelled'
+        );
+    }
+
+    private function notifyPrincipalAssignmentConfirmed(array $assignment): void
+    {
+        $this->notifications()->create(
+            $assignment['assigned_by'] ?? null,
+            'Evaluator confirmed assignment',
+            'An evaluator has confirmed an assessment assignment.',
+            route('principal.assign-evaluator', [], false),
+            'assignment_confirmed'
+        );
     }
 
     private function schoolYearLabel(array $year): string

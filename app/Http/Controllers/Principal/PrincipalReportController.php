@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Principal;
 
 use App\Helpers\PrincipalMenuHelper;
 use App\Http\Controllers\Controller;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -140,6 +141,7 @@ class PrincipalReportController extends Controller
         }
 
         $this->syncSchoolReportSections($schoolReportId, $report);
+        $this->notifySchoolReportSubmitted($report, $schoolReportId);
 
         return redirect()->route('principal.reports.show', [
             'gradeLevelId' => $gradeLevelId,
@@ -147,6 +149,34 @@ class PrincipalReportController extends Controller
             'quarterId' => $quarterId,
             'language' => $language,
         ])->with('success', ucfirst($language) . ' consolidated report was submitted to the district supervisor.');
+    }
+
+    private function notifySchoolReportSubmitted(array $report, string $schoolReportId): void
+    {
+        $districtReviewerIds = $this->notifications()->districtReviewerUserIdsForSchool($report['school_id'] ?? null);
+        $schoolAdminIds = $this->notifications()->schoolAdminUserIds($report['school_id'] ?? null);
+        $message = 'A consolidated ' . ucfirst($report['language'] ?? 'school') . ' report for ' . ($report['grade_label'] ?? 'Grade') . ', ' . ($report['quarter_label'] ?? 'Quarter') . ' was submitted.';
+
+        $this->notifications()->createForUsers(
+            $districtReviewerIds,
+            'School report submitted',
+            $message,
+            route('district-supervisor.reports.school-report', ['schoolReportId' => $schoolReportId], false),
+            'school_report_submitted'
+        );
+
+        $this->notifications()->createForUsers(
+            $schoolAdminIds,
+            'School report submitted',
+            $message,
+            route('school-admin.dashboard', [], false),
+            'school_report_submitted'
+        );
+    }
+
+    private function notifications(): NotificationService
+    {
+        return app(NotificationService::class);
     }
 
     private function buildReportGroups(string $schoolId, string $yearId): array
@@ -663,7 +693,7 @@ class PrincipalReportController extends Controller
             'report_status' => 'submitted',
             'submitted_at' => now()->toISOString(),
             'updated_at' => now()->toISOString(),
-            'remarks' => 'Consolidated school report submitted by principal for district supervisor review.',
+            'remarks' => 'Consolidated school report submitted by principal.',
         ];
 
         if ($report['existing_report_id']) {

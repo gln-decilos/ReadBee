@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Evaluator;
 
 use App\Helpers\EvaluatorMenuHelper;
 use App\Http\Controllers\Controller;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -89,11 +90,28 @@ class EvaluatorAssignmentController extends Controller
         }
 
         $updated = $response->json()[0] ?? array_merge($assignment, ['confirmation_status' => 'confirmed']);
+        $this->notifyPrincipalAssignmentConfirmed($updated);
 
         return response()->json([
             'message' => 'Assignment confirmed successfully.',
             'assignment' => $this->hydrateAssignment($updated),
         ]);
+    }
+
+    private function notifications(): NotificationService
+    {
+        return app(NotificationService::class);
+    }
+
+    private function notifyPrincipalAssignmentConfirmed(array $assignment): void
+    {
+        $this->notifications()->create(
+            $assignment['assigned_by'] ?? null,
+            'Evaluator confirmed assignment',
+            'An evaluator has confirmed an assessment assignment.',
+            route('principal.assign-evaluator', [], false),
+            'assignment_confirmed'
+        );
     }
 
     private function fetchEvaluatorAssignments(string $evaluatorId, string $yearId, array $schoolYears): array

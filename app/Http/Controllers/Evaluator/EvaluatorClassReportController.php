@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Evaluator;
 
 use App\Helpers\EvaluatorMenuHelper;
 use App\Http\Controllers\Controller;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -103,7 +104,12 @@ class EvaluatorClassReportController extends Controller
         }
 
         $this->syncClassReportPupils($classReportId, $report);
-        $this->markAssignmentSubmittedWhenComplete($assignmentId, $report['year_id'], $report['quarter_id'], $evaluatorId);
+        $isAssignmentReportComplete = $this->markAssignmentSubmittedWhenComplete($assignmentId, $report['year_id'], $report['quarter_id'], $evaluatorId);
+        $this->notifyPrincipalClassReportSubmitted($report, $classReportId);
+
+        if ($isAssignmentReportComplete) {
+            $this->notifyPrincipalAssignmentReportCompleted($report);
+        }
 
         return redirect()->route('evaluator.reports.show', [
             'assignmentId' => $assignmentId,
@@ -326,6 +332,37 @@ class EvaluatorClassReportController extends Controller
         return $summary;
     }
 
+    private function notifications(): NotificationService
+    {
+        return app(NotificationService::class);
+    }
+
+    private function notifyPrincipalClassReportSubmitted(array $report, string $classReportId): void
+    {
+        $principalIds = $this->notifications()->principalUserIdsForSchool($report['school_id'] ?? null);
+
+        $this->notifications()->createForUsers(
+            $principalIds,
+            'Class report submitted',
+            ($report['evaluator_name'] ?? 'An evaluator') . ' submitted the ' . ucfirst($report['language'] ?? 'class') . ' report for ' . ($report['grade_label'] ?? 'Grade') . ' - ' . ($report['section_name'] ?? 'Section') . '.',
+            route('principal.reports.class-report', ['classReportId' => $classReportId], false),
+            'class_report_submitted'
+        );
+    }
+
+    private function notifyPrincipalAssignmentReportCompleted(array $report): void
+    {
+        $principalIds = $this->notifications()->principalUserIdsForSchool($report['school_id'] ?? null);
+
+        $this->notifications()->createForUsers(
+            $principalIds,
+            'Evaluator reports completed',
+            ($report['evaluator_name'] ?? 'An evaluator') . ' completed all required reports for ' . ($report['grade_label'] ?? 'Grade') . ' - ' . ($report['section_name'] ?? 'Section') . '.',
+            route('principal.reports', ['year_id' => $report['year_id'] ?? null], false),
+            'assignment_reports_completed'
+        );
+    }
+
     private function saveClassReport(array $report, string $evaluatorId): ?string
     {
         $payload = [
@@ -339,7 +376,7 @@ class EvaluatorClassReportController extends Controller
             'report_status' => 'submitted',
             'submitted_at' => now()->toISOString(),
             'updated_at' => now()->toISOString(),
-            'remarks' => 'Submitted by evaluator for principal review.',
+            'remarks' => 'Submitted by evaluator.',
         ];
 
         if ($report['existing_report_id']) {
@@ -399,18 +436,18 @@ class EvaluatorClassReportController extends Controller
         }
     }
 
-    private function markAssignmentSubmittedWhenComplete(string $assignmentId, string $yearId, string $quarterId, string $evaluatorId): void
+    private function markAssignmentSubmittedWhenComplete(string $assignmentId, string $yearId, string $quarterId, string $evaluatorId): bool
     {
         $assignment = $this->fetchAssignment($evaluatorId, $assignmentId);
 
         if (! $assignment) {
-            return;
+            return false;
         }
 
         $base = $this->buildAssignmentBase($evaluatorId, $assignment);
 
         if (! $base) {
-            return;
+            return false;
         }
 
         $reports = $this->fetchExistingReports(
@@ -430,7 +467,7 @@ class EvaluatorClassReportController extends Controller
             ->all();
 
         if (count(array_intersect(self::LANGUAGES, $submittedLanguages)) < 2) {
-            return;
+            return false;
         }
 
         $response = Http::withHeaders($this->supabaseWriteHeaders())
@@ -444,7 +481,10 @@ class EvaluatorClassReportController extends Controller
 
         if (! $response->successful()) {
             report('Failed to update evaluator assignment report status: ' . $response->body());
+            return false;
         }
+
+        return true;
     }
 
     private function fetchConfirmedAssignments(string $evaluatorId, string $yearId): array

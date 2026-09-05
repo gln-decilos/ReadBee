@@ -2,25 +2,44 @@ FROM dunglas/frankenphp:php8.2
 
 WORKDIR /app
 
+# PHP extensions
 RUN install-php-extensions \
     pdo_mysql \
     mbstring \
     zip \
     opcache
 
+# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# Node.js + npm
+RUN apt-get update \
+    && apt-get install -y nodejs npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package files first for better caching
+COPY package*.json ./
+
+RUN npm install
+
+# Copy application
 COPY . .
 
+# Build Vite assets
+RUN npm run build
+
+# Install Laravel dependencies
 RUN composer install \
     --no-dev \
     --optimize-autoloader \
     --no-interaction
 
+# Laravel optimization
 RUN php artisan optimize
 
+# FrankenPHP serves Laravel's public directory
 ENV SERVER_NAME=:80
 
 EXPOSE 80
 
-CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
+CMD ["frankenphp", "php-server", "--root", "public", "--listen", ":80"]

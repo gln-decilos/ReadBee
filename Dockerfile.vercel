@@ -35,7 +35,8 @@ RUN composer install \
     --no-interaction
 
 # Laravel optimization
-RUN php artisan optimize
+RUN php artisan package:discover
+
 
 # FrankenPHP serves Laravel's public directory
 ENV SERVER_NAME=:80

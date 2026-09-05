@@ -33,6 +33,17 @@ use App\Http\Controllers\DistrictSupervisor\DistrictSupervisorProgressMonitoring
 use App\Http\Controllers\DistrictSupervisor\DistrictSupervisorReportController;
 use App\Http\Controllers\NotificationController;
 
+Route::get('/debug-config', function () {
+    return response()->json([
+        'app_key_exists' => !empty(env('APP_KEY')),
+        'supabase_url_exists' => !empty(env('SUPABASE_URL')),
+        'supabase_anon_exists' => !empty(env('SUPABASE_ANON_KEY')),
+        'supabase_service_exists' => !empty(env('SUPABASE_SERVICE_ROLE_KEY')),
+        'app_env' => env('APP_ENV'),
+        'app_debug' => env('APP_DEBUG'),
+    ]);
+});
+
 // landing page
 Route::get('/', function () {
     return view('pages.landing', ['title' => 'ReadBee']);

@@ -35,6 +35,7 @@ use App\Http\Controllers\NotificationController;
 
 Route::get('/debug-config', function () {
     return response()->json([
+        'php_version' => PHP_VERSION,
         'app_key_exists' => !empty(env('APP_KEY')),
         'supabase_url_exists' => !empty(env('SUPABASE_URL')),
         'supabase_anon_exists' => !empty(env('SUPABASE_ANON_KEY')),
@@ -42,7 +43,10 @@ Route::get('/debug-config', function () {
         'app_env' => env('APP_ENV'),
         'app_debug' => env('APP_DEBUG'),
     ]);
-});
+})->withoutMiddleware([
+    \Illuminate\Cookie\Middleware\EncryptCookies::class,
+    \Illuminate\Session\Middleware\StartSession::class,
+]);
 
 // landing page
 Route::get('/', function () {
